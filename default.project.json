@@ -5,6 +5,9 @@
 
     "ServerScriptService": {
       "$className": "ServerScriptService",
+      "Init": {
+        "$path": "src/ServerScriptService/Init.server.lua"
+      },
       "PlayerDataService": {
         "$path": "src/ServerScriptService/PlayerDataService.lua"
       },
@@ -25,7 +28,6 @@
         }
       },
       "Modules": {
-        "$className": "Folder",
         "$path": "src/ReplicatedStorage/Modules"
       }
     },
@@ -43,7 +45,6 @@
     "StarterGui": {
       "$className": "StarterGui",
       "UI": {
-        "$className": "Folder",
         "$path": "src/StarterGui/UI"
       }
     },
@@ -56,19 +57,15 @@
       "Zones": {
         "$className": "Folder",
         "WordGarden": {
-          "$className": "Folder",
           "$path": "src/Workspace/Zones/WordGarden"
         },
         "FashionDistrict": {
-          "$className": "Folder",
           "$path": "src/Workspace/Zones/FashionDistrict"
         },
         "MathAcademy": {
-          "$className": "Folder",
           "$path": "src/Workspace/Zones/MathAcademy"
         },
         "CreativeCommons": {
-          "$className": "Folder",
           "$path": "src/Workspace/Zones/CreativeCommons"
         }
       }
