@@ -470,8 +470,8 @@ function WorldBuilder:CreateHub()
 	-- Create a nice platform by the river
 	local platform = Instance.new("Part")
 	platform.Name = "HubPlatform"
-	platform.Size = Vector3.new(20, 1, 20)
-	platform.Position = pos
+	platform.Size = Vector3.new(20, 2, 20)
+	platform.Position = pos + Vector3.new(0, -1, 0)  -- Lower it 1 stud
 	platform.Anchored = true
 	platform.BrickColor = BrickColor.new("Sand blue")
 	platform.Material = Enum.Material.Slate
@@ -506,15 +506,15 @@ function WorldBuilder:CreateHub()
 	label.TextColor3 = Color3.fromRGB(100, 150, 255)
 	label.Parent = signText
 
-	-- Spawn location
+	-- Spawn location ON TOP of platform
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "HubSpawn"
 	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.Position = pos
+	spawn.Position = pos + Vector3.new(0, 1, 0)  -- Raise it 1 stud above center
 	spawn.Anchored = true
-	spawn.Transparency = 0.3
-	spawn.BrickColor = BrickColor.new("Sand blue")
-	spawn.CanCollide = false
+	spawn.Transparency = 0.5
+	spawn.BrickColor = BrickColor.new("Bright green")
+	spawn.CanCollide = true  -- Changed to true so players don't fall through!
 	spawn.Parent = Workspace
 
 	print("Hub created")
