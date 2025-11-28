@@ -333,6 +333,15 @@ function ClientController:Init()
 	local character = player.Character or player.CharacterAdded:Wait()
 	print("Character loaded")
 
+	-- Enforce movement settings
+	local humanoid = character:WaitForChild("Humanoid")
+	if humanoid then
+		humanoid.WalkSpeed = 16
+		humanoid.JumpPower = 50
+		humanoid.AutoRotate = true
+		print("Movement settings enforced")
+	end
+
 	-- Initialize remote events
 	initializeRemotes()
 

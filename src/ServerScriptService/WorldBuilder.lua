@@ -63,6 +63,14 @@ function WorldBuilder:CreateRiver()
 			Vector3.new(25, 3, 25),  -- Reduced from 6 to 3 studs tall
 			Enum.Material.Water
 		)
+
+		-- Carve out air above the river to ensure it's not underground
+		local airPos = pos + Vector3.new(0, 10, 0)
+		terrain:FillBlock(
+			CFrame.new(airPos),
+			Vector3.new(25, 20, 25), -- Clear space above
+			Enum.Material.Air
+		)
 	end
 
 	print("River created")
@@ -83,10 +91,10 @@ function WorldBuilder:CreateEllasLookout()
 	local hillCenterZ = pos.Z
 
 	-- Create hill in layers from bottom to top
-	local layers = 6
+	local layers = 60 -- Increased resolution for smoother slope
 	for i = 0, layers do
 		local layerY = hillBaseY + (hillTopY - hillBaseY) * (i / layers)
-		local layerRadius = 60 - (i * 8)  -- Shrinks as we go up
+		local layerRadius = 60 - (i * 0.8)  -- Shrinks slower as we go up (60 -> 12 over 60 steps)
 
 		if layerRadius > 5 then
 			terrain:FillBall(
@@ -195,11 +203,12 @@ function WorldBuilder:CreateEllasLookout()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "LookoutSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = Vector3.new(hillCenterX - 40, 12, hillCenterZ)  -- At ground level, to the side
+	spawn.Position = Vector3.new(hillCenterX - 75, 12, hillCenterZ)  -- Moved further out to avoid being buried
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
-	spawn.CanCollide = true
+	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
 	print("Ella's Lookout created")
@@ -297,7 +306,8 @@ function WorldBuilder:CreateEllasHouse()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Light yellow")
-	spawn.CanCollide = true
+	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
 	print("Ella's House created")
@@ -308,6 +318,10 @@ function WorldBuilder:CreateWordleLibrary()
 	print("Creating Wordle Library...")
 
 	local pos = Constants.ZONES.WordleLibrary.Position
+	-- Ground is at Y=10, so position building with base ON the ground
+	local groundLevel = 10
+	local baseHeight = 1
+	local baseCenter = groundLevel + (baseHeight / 2)
 
 	local library = Instance.new("Model")
 	library.Name = "WordleLibrary"
@@ -315,38 +329,42 @@ function WorldBuilder:CreateWordleLibrary()
 	-- Building base
 	local base = Instance.new("Part")
 	base.Size = Vector3.new(35, 1, 30)
-	base.Position = pos
+	base.Position = Vector3.new(pos.X, baseCenter, pos.Z)
 	base.Anchored = true
 	base.BrickColor = BrickColor.new("Dark stone grey")
 	base.Parent = library
 
 	-- Walls
+	local wallY = groundLevel + baseHeight + 7 -- Base + half wall height (14/2)
+	
 	for i, wallData in ipairs({
-		{Vector3.new(0, 7, -15), Vector3.new(35, 14, 1)},
-		{Vector3.new(0, 7, 15), Vector3.new(35, 14, 1)},
-		{Vector3.new(-17.5, 7, 0), Vector3.new(1, 14, 30)},
-		{Vector3.new(17.5, 7, 0), Vector3.new(1, 14, 30)},
+		{Vector3.new(0, 0, -15), Vector3.new(35, 14, 1)},
+		{Vector3.new(0, 0, 15), Vector3.new(35, 14, 1)},
+		{Vector3.new(-17.5, 0, 0), Vector3.new(1, 14, 30)},
+		{Vector3.new(17.5, 0, 0), Vector3.new(1, 14, 30)},
 	}) do
 		local wall = Instance.new("Part")
 		wall.Size = wallData[2]
-		wall.Position = pos + wallData[1]
+		wall.Position = Vector3.new(pos.X, wallY, pos.Z) + wallData[1]
 		wall.Anchored = true
 		wall.BrickColor = BrickColor.new("Lavender")
 		wall.Parent = library
 	end
 
 	-- Roof
+	local roofY = groundLevel + baseHeight + 14 + 0.5 -- Base + wall height + half roof height
 	local roof = Instance.new("Part")
 	roof.Size = Vector3.new(35, 1, 30)
-	roof.Position = pos + Vector3.new(0, 14, 0)
+	roof.Position = Vector3.new(pos.X, roofY, pos.Z)
 	roof.Anchored = true
 	roof.BrickColor = BrickColor.new("Dark indigo")
 	roof.Parent = library
 
 	-- Sign
+	local signY = groundLevel + baseHeight + 10
 	local sign = Instance.new("Part")
 	sign.Size = Vector3.new(20, 3, 0.5)
-	sign.Position = pos + Vector3.new(0, 10, -15.5)
+	sign.Position = Vector3.new(pos.X, signY, pos.Z - 15.5)
 	sign.Anchored = true
 	sign.BrickColor = BrickColor.new("White")
 	sign.Parent = library
@@ -374,7 +392,8 @@ function WorldBuilder:CreateWordleLibrary()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Lavender")
-	spawn.CanCollide = true
+	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
 	print("Wordle Library created")
@@ -385,6 +404,10 @@ function WorldBuilder:CreateFashionBoutique()
 	print("Creating Fashion Boutique...")
 
 	local pos = Constants.ZONES.FashionBoutique.Position
+	-- Ground is at Y=10, so position building with base ON the ground
+	local groundLevel = 10
+	local baseHeight = 1
+	local baseCenter = groundLevel + (baseHeight / 2)
 
 	local boutique = Instance.new("Model")
 	boutique.Name = "FashionBoutique"
@@ -392,21 +415,23 @@ function WorldBuilder:CreateFashionBoutique()
 	-- Building base
 	local base = Instance.new("Part")
 	base.Size = Vector3.new(30, 1, 30)
-	base.Position = pos
+	base.Position = Vector3.new(pos.X, baseCenter, pos.Z)
 	base.Anchored = true
 	base.BrickColor = BrickColor.new("Dark stone grey")
 	base.Parent = boutique
 
 	-- Walls with glass
+	local wallY = groundLevel + baseHeight + 7 -- Base + half wall height (14/2)
+
 	for i, wallData in ipairs({
-		{Vector3.new(0, 7, -15), Vector3.new(30, 14, 1)},
-		{Vector3.new(0, 7, 15), Vector3.new(30, 14, 1)},
-		{Vector3.new(-15, 7, 0), Vector3.new(1, 14, 30)},
-		{Vector3.new(15, 7, 0), Vector3.new(1, 14, 30)},
+		{Vector3.new(0, 0, -15), Vector3.new(30, 14, 1)},
+		{Vector3.new(0, 0, 15), Vector3.new(30, 14, 1)},
+		{Vector3.new(-15, 0, 0), Vector3.new(1, 14, 30)},
+		{Vector3.new(15, 0, 0), Vector3.new(1, 14, 30)},
 	}) do
 		local wall = Instance.new("Part")
 		wall.Size = wallData[2]
-		wall.Position = pos + wallData[1]
+		wall.Position = Vector3.new(pos.X, wallY, pos.Z) + wallData[1]
 		wall.Anchored = true
 		wall.Material = Enum.Material.Glass
 		wall.Transparency = 0.3
@@ -415,17 +440,19 @@ function WorldBuilder:CreateFashionBoutique()
 	end
 
 	-- Roof
+	local roofY = groundLevel + baseHeight + 14 + 0.5 -- Base + wall height + half roof height
 	local roof = Instance.new("Part")
 	roof.Size = Vector3.new(30, 1, 30)
-	roof.Position = pos + Vector3.new(0, 14, 0)
+	roof.Position = Vector3.new(pos.X, roofY, pos.Z)
 	roof.Anchored = true
 	roof.BrickColor = BrickColor.new("Hot pink")
 	roof.Parent = boutique
 
 	-- Sign
+	local signY = groundLevel + baseHeight + 10
 	local sign = Instance.new("Part")
 	sign.Size = Vector3.new(15, 3, 0.5)
-	sign.Position = pos + Vector3.new(0, 10, -15.5)
+	sign.Position = Vector3.new(pos.X, signY, pos.Z - 15.5)
 	sign.Anchored = true
 	sign.BrickColor = BrickColor.new("White")
 	sign.Parent = boutique
@@ -453,7 +480,8 @@ function WorldBuilder:CreateFashionBoutique()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Pink")
-	spawn.CanCollide = true
+	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
 	print("Fashion Boutique created")
@@ -464,12 +492,16 @@ function WorldBuilder:CreateBuildingArea()
 	print("Creating Building Area...")
 
 	local pos = Constants.ZONES.BuildingArea.Position
+	-- Ground is at Y=10, so position building with base ON the ground
+	local groundLevel = 10
+	local baseHeight = 1
+	local baseCenter = groundLevel + (baseHeight / 2)
 
 	-- Just create a large platform for building
 	local platform = Instance.new("Part")
 	platform.Name = "BuildingPlatform"
 	platform.Size = Vector3.new(80, 1, 80)
-	platform.Position = pos
+	platform.Position = Vector3.new(pos.X, baseCenter, pos.Z)
 	platform.Anchored = true
 	platform.BrickColor = BrickColor.new("Sand yellow")
 	platform.Material = Enum.Material.Concrete
@@ -483,7 +515,8 @@ function WorldBuilder:CreateBuildingArea()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Sand yellow")
-	spawn.CanCollide = true
+	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
 	print("Building Area created")
@@ -542,7 +575,8 @@ function WorldBuilder:CreateHub()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
-	spawn.CanCollide = true  -- Changed to true so players don't fall through!
+	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
 	print("Hub created")
