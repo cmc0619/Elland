@@ -210,52 +210,60 @@ function WorldBuilder:CreateEllasHouse()
 	print("Creating Ella's House...")
 
 	local pos = Constants.ZONES.EllasHouse.Position
+	-- Ground is at Y=10, so position house with base ON the ground
+	local groundLevel = 10
+	local baseHeight = 1
+	local baseCenter = groundLevel + (baseHeight / 2)  -- Y=10.5
 
 	local house = Instance.new("Model")
 	house.Name = "EllasHouse"
 
-	-- House base
+	-- House base - sits ON ground
 	local base = Instance.new("Part")
 	base.Name = "Base"
 	base.Size = Vector3.new(30, 1, 25)
-	base.Position = pos
+	base.Position = Vector3.new(pos.X, baseCenter, pos.Z)  -- Base at Y=10.5
 	base.Anchored = true
 	base.BrickColor = BrickColor.new("Dark stone grey")
 	base.Parent = house
 
+	local wallY = groundLevel + baseHeight + 6  -- Y=10 + 1 + 6 = 17
+
 	-- Walls
 	local wall1 = Instance.new("Part")
 	wall1.Size = Vector3.new(30, 12, 1)
-	wall1.Position = pos + Vector3.new(0, 6, -12)
+	wall1.Position = Vector3.new(pos.X, wallY, pos.Z - 12)
 	wall1.Anchored = true
 	wall1.BrickColor = BrickColor.new("Light yellow")
 	wall1.Parent = house
 
 	local wall2 = Instance.new("Part")
 	wall2.Size = Vector3.new(30, 12, 1)
-	wall2.Position = pos + Vector3.new(0, 6, 12)
+	wall2.Position = Vector3.new(pos.X, wallY, pos.Z + 12)
 	wall2.Anchored = true
 	wall2.BrickColor = BrickColor.new("Light yellow")
 	wall2.Parent = house
 
 	local wall3 = Instance.new("Part")
 	wall3.Size = Vector3.new(1, 12, 25)
-	wall3.Position = pos + Vector3.new(-15, 6, 0)
+	wall3.Position = Vector3.new(pos.X - 15, wallY, pos.Z)
 	wall3.Anchored = true
 	wall3.BrickColor = BrickColor.new("Light yellow")
 	wall3.Parent = house
 
 	local wall4 = Instance.new("Part")
 	wall4.Size = Vector3.new(1, 12, 25)
-	wall4.Position = pos + Vector3.new(15, 6, 0)
+	wall4.Position = Vector3.new(pos.X + 15, wallY, pos.Z)
 	wall4.Anchored = true
 	wall4.BrickColor = BrickColor.new("Light yellow")
 	wall4.Parent = house
 
+	local roofY = wallY + 6 + 4  -- Wall center + half wall height + half roof height
+
 	-- Roof
 	local roof = Instance.new("WedgePart")
 	roof.Size = Vector3.new(1, 8, 32)
-	roof.Position = pos + Vector3.new(0, 16, 0)
+	roof.Position = Vector3.new(pos.X, roofY, pos.Z)
 	roof.Orientation = Vector3.new(0, 90, 0)
 	roof.Anchored = true
 	roof.BrickColor = BrickColor.new("Bright red")
@@ -263,16 +271,18 @@ function WorldBuilder:CreateEllasHouse()
 
 	local roof2 = Instance.new("WedgePart")
 	roof2.Size = Vector3.new(1, 8, 32)
-	roof2.Position = pos + Vector3.new(0, 16, 0)
+	roof2.Position = Vector3.new(pos.X, roofY, pos.Z)
 	roof2.Orientation = Vector3.new(0, -90, 0)
 	roof2.Anchored = true
 	roof2.BrickColor = BrickColor.new("Bright red")
 	roof2.Parent = house
 
+	local doorY = groundLevel + baseHeight + 4  -- Bottom of wall + half door height
+
 	-- Door
 	local door = Instance.new("Part")
 	door.Size = Vector3.new(4, 8, 0.5)
-	door.Position = pos + Vector3.new(0, 4, -12.5)
+	door.Position = Vector3.new(pos.X, doorY, pos.Z - 12.5)
 	door.Anchored = true
 	door.BrickColor = BrickColor.new("Brown")
 	door.Parent = house
