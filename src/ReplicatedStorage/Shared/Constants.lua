@@ -20,8 +20,8 @@ Constants.XP_MULTIPLIER = 1.5 -- Each level requires 1.5x more XP
 
 -- World Layout Positions
 Constants.WORLD = {
-	RIVER_START = Vector3.new(-300, 5, -100),
-	RIVER_END = Vector3.new(300, 5, 100),
+	RIVER_START = Vector3.new(-300, 53, -100),
+	RIVER_END = Vector3.new(300, 53, 100),
 	TERRAIN_SIZE = Vector3.new(600, 100, 600),
 }
 
@@ -30,7 +30,7 @@ Constants.ZONES = {
 	Hub = {
 		Name = "By the River",
 		Description = "The peaceful center of Elland",
-		Position = Vector3.new(0, 5, 0),
+		Position = Vector3.new(0, 55, 0),
 		Color = Color3.fromRGB(100, 150, 255),
 		Icon = "rbxassetid://0",
 	},
@@ -44,28 +44,28 @@ Constants.ZONES = {
 	EllasHouse = {
 		Name = "Ella's House",
 		Description = "Home sweet home",
-		Position = Vector3.new(150, 20, -100),
+		Position = Vector3.new(150, 70, -100),
 		Color = Color3.fromRGB(255, 200, 150),
 		Icon = "rbxassetid://0",
 	},
 	WordleLibrary = {
 		Name = "Wordle Library",
 		Description = "Solve daily word puzzles and challenges",
-		Position = Vector3.new(-200, 5, 200),
+		Position = Vector3.new(-200, 55, 200),
 		Color = Color3.fromRGB(200, 150, 255),
 		Icon = "rbxassetid://0",
 	},
 	FashionBoutique = {
 		Name = "Fashion Boutique",
 		Description = "Express yourself through style and design",
-		Position = Vector3.new(200, 5, 200),
+		Position = Vector3.new(200, 55, 200),
 		Color = Color3.fromRGB(255, 150, 200),
 		Icon = "rbxassetid://0",
 	},
 	BuildingArea = {
 		Name = "Building Area",
 		Description = "Create and build your own structures",
-		Position = Vector3.new(-200, 5, -200),
+		Position = Vector3.new(-200, 55, -200),
 		Color = Color3.fromRGB(255, 200, 100),
 		Icon = "rbxassetid://0",
 	},
