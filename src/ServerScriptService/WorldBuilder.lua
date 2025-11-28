@@ -19,9 +19,9 @@ function WorldBuilder:CreateTerrain()
 	local terrain = Workspace.Terrain
 	terrain:Clear()
 
-	-- Create base grassland (much flatter!)
-	local size = Vector3.new(600, 20, 600)  -- Only 20 studs tall
-	local center = Vector3.new(0, 10, 0)     -- Center at Y=10, so terrain is Y=0 to Y=20
+	-- Create thin grass layer starting at ground level
+	local size = Vector3.new(600, 10, 600)  -- Only 10 studs tall
+	local center = Vector3.new(0, 5, 0)     -- Center at Y=5, so terrain is Y=0 to Y=10
 
 	terrain:FillBlock(
 		CFrame.new(center),

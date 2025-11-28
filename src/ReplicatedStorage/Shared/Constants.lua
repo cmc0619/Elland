@@ -20,52 +20,52 @@ Constants.XP_MULTIPLIER = 1.5 -- Each level requires 1.5x more XP
 
 -- World Layout Positions
 Constants.WORLD = {
-	RIVER_START = Vector3.new(-300, 18, -100),
-	RIVER_END = Vector3.new(300, 18, 100),
-	TERRAIN_SIZE = Vector3.new(600, 20, 600),
+	RIVER_START = Vector3.new(-300, 8, -100),
+	RIVER_END = Vector3.new(300, 8, 100),
+	TERRAIN_SIZE = Vector3.new(600, 10, 600),
 }
 
--- Zones with world positions (terrain goes from Y=0 to Y=20, spawns at Y=25)
+-- Zones with world positions (terrain is Y=0 to Y=10, spawns at Y=12)
 Constants.ZONES = {
 	Hub = {
 		Name = "By the River",
 		Description = "The peaceful center of Elland",
-		Position = Vector3.new(0, 25, 0),
+		Position = Vector3.new(0, 12, 0),
 		Color = Color3.fromRGB(100, 150, 255),
 		Icon = "rbxassetid://0",
 	},
 	EllasLookout = {
 		Name = "Ella's Lookout",
 		Description = "A big hill with a tree and swing - perfect for thinking",
-		Position = Vector3.new(200, 85, -200),
+		Position = Vector3.new(200, 70, -200),
 		Color = Color3.fromRGB(100, 200, 100),
 		Icon = "rbxassetid://0",
 	},
 	EllasHouse = {
 		Name = "Ella's House",
 		Description = "Home sweet home",
-		Position = Vector3.new(150, 60, -100),
+		Position = Vector3.new(150, 45, -100),
 		Color = Color3.fromRGB(255, 200, 150),
 		Icon = "rbxassetid://0",
 	},
 	WordleLibrary = {
 		Name = "Wordle Library",
 		Description = "Solve daily word puzzles and challenges",
-		Position = Vector3.new(-200, 25, 200),
+		Position = Vector3.new(-200, 12, 200),
 		Color = Color3.fromRGB(200, 150, 255),
 		Icon = "rbxassetid://0",
 	},
 	FashionBoutique = {
 		Name = "Fashion Boutique",
 		Description = "Express yourself through style and design",
-		Position = Vector3.new(200, 25, 200),
+		Position = Vector3.new(200, 12, 200),
 		Color = Color3.fromRGB(255, 150, 200),
 		Icon = "rbxassetid://0",
 	},
 	BuildingArea = {
 		Name = "Building Area",
 		Description = "Create and build your own structures",
-		Position = Vector3.new(-200, 25, -200),
+		Position = Vector3.new(-200, 12, -200),
 		Color = Color3.fromRGB(255, 200, 100),
 		Icon = "rbxassetid://0",
 	},
