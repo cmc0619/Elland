@@ -30,14 +30,9 @@ ZoneManager:Init()
 print("Initializing WordleManager...")
 WordleManager:Init(PlayerDataService, CurrencyManager)
 
--- Optional: Build the world (comment out after first run)
--- Uncomment the lines below and run once in Studio to build the world
--- Then comment them out again to prevent rebuilding every time
---[[
+-- Build the world (auto-cleans up old world on each run)
 print("Building World...")
 WorldBuilder:BuildWorld()
-print("World building complete! Comment out WorldBuilder in Init.server.lua")
---]]
 
 print("======================")
 print("Elland Server Ready!")

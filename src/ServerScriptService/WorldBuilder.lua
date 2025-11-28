@@ -526,6 +526,37 @@ function WorldBuilder:BuildWorld()
 	print("Building Elland World")
 	print("======================")
 
+	-- Clean up old world if it exists
+	local oldSpawns = {
+		"HubSpawn", "LookoutSpawn", "HouseSpawn", "LibrarySpawn",
+		"BoutiqueSpawn", "BuildingSpawn"
+	}
+
+	for _, spawnName in ipairs(oldSpawns) do
+		local oldSpawn = Workspace:FindFirstChild(spawnName, true)
+		if oldSpawn then
+			oldSpawn:Destroy()
+		end
+	end
+
+	local oldModels = {
+		"WishingTree", "EllasHouse", "WordleLibrary", "FashionBoutique",
+		"BuildingPlatform", "HubPlatform"
+	}
+
+	for _, modelName in ipairs(oldModels) do
+		local oldModel = Workspace:FindFirstChild(modelName, true)
+		if oldModel then
+			oldModel:Destroy()
+		end
+	end
+
+	-- Clear terrain
+	Workspace.Terrain:Clear()
+
+	print("Cleaned up old world")
+
+	-- Build new world
 	self:CreateTerrain()
 	self:CreateRiver()
 	self:CreateHub()
