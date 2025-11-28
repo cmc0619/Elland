@@ -89,12 +89,24 @@ If `src/MyModule/init.lua` exists, this becomes a ModuleScript automatically.
 ## Git Configuration
 
 ### Working with Main Branch
-This project uses a GitHub personal access token to push directly to main:
+
+**Important:** The main branch is protected. Claude can only push to branches starting with `claude/` by default.
+
+To merge changes to main, Claude must ask the user for a GitHub personal access token:
 ```bash
 git remote set-url origin https://TOKEN@github.com/cmc0619/Elland.git
 ```
 
-**Security Note:** Rotate the token periodically for security.
+**Process for Claude:**
+1. When context restarts or token is forgotten, ask user: "I need the GitHub token to push to main"
+2. User will provide the token (never write the actual token value to this file)
+3. Configure remote with token using command above
+4. Push to main
+
+**Security Note:**
+- Token is not persisted between Claude sessions (by design)
+- Rotate the token periodically for security
+- Token provides write access to the repository
 
 ## Development Workflow
 
