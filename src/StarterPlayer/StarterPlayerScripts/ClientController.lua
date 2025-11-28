@@ -331,6 +331,22 @@ function ClientController:Init()
 		humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
 		
 		print("Movement settings enforced - WalkSpeed:", humanoid.WalkSpeed, "JumpPower:", humanoid.JumpPower)
+		
+		-- Monitor and fix movement if it gets stuck
+		task.spawn(function()
+			while humanoid and humanoid.Parent do
+				task.wait(0.5)
+				if humanoid.WalkSpeed ~= 16 then
+					humanoid.WalkSpeed = 16
+					print("Fixed WalkSpeed")
+				end
+				-- Re-enable running state if it gets disabled
+				if not humanoid:GetStateEnabled(Enum.HumanoidStateType.Running) then
+					humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+					print("Re-enabled Running state")
+				end
+			end
+		end)
 	end
 
 	-- Initialize remote events
