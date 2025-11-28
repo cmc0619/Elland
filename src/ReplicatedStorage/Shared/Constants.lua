@@ -20,8 +20,8 @@ Constants.XP_MULTIPLIER = 1.5 -- Each level requires 1.5x more XP
 
 -- World Layout Positions
 Constants.WORLD = {
-	RIVER_START = Vector3.new(-300, 11, -100),  -- Raised above ground (Y=10)
-	RIVER_END = Vector3.new(300, 11, 100),
+	RIVER_START = Vector3.new(-300, 9, -100),  -- Slightly below ground for river bed
+	RIVER_END = Vector3.new(300, 9, 100),
 	TERRAIN_SIZE = Vector3.new(600, 10, 600),
 }
 
