@@ -71,6 +71,13 @@ function ZoneManager:TeleportToZone(player, zoneName)
 	local spawnCFrame = zone.SpawnLocation.CFrame
 	humanoidRootPart.CFrame = spawnCFrame + Vector3.new(0, 3, 0) -- Spawn slightly above
 
+	-- Remove any ForceField that gets created during teleport
+	task.wait(0.1) -- Wait for ForceField to be created
+	local forceField = character:FindFirstChildOfClass("ForceField")
+	if forceField then
+		forceField:Destroy()
+	end
+
 	print(player.Name, "teleported to", zone.Name)
 
 	return true
