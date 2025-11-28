@@ -72,20 +72,32 @@ end
 function WorldBuilder:CreateEllasLookout()
 	print("Creating Ella's Lookout...")
 
-	local pos = Constants.ZONES.EllasLookout.Position
+	local pos = Constants.ZONES.EllasLookout.Position  -- Y=70 is the TOP of the hill
 	local terrain = Workspace.Terrain
 
-	-- Create hill using sphere of terrain
-	local hillRadius = 60
-	local hillHeight = 80
+	-- Create gradual hill using layered terrain
+	-- Hill base starts at ground level (Y=10) and rises to Y=70
+	local hillBaseY = 10
+	local hillTopY = pos.Y
+	local hillCenterX = pos.X
+	local hillCenterZ = pos.Z
 
-	terrain:FillBall(
-		Vector3.new(pos.X, hillHeight / 2, pos.Z),
-		hillRadius,
-		Enum.Material.Grass
-	)
+	-- Create hill in layers from bottom to top
+	local layers = 6
+	for i = 0, layers do
+		local layerY = hillBaseY + (hillTopY - hillBaseY) * (i / layers)
+		local layerRadius = 60 - (i * 8)  -- Shrinks as we go up
 
-	-- Create the tree
+		if layerRadius > 5 then
+			terrain:FillBall(
+				Vector3.new(hillCenterX, layerY, hillCenterZ),
+				layerRadius,
+				Enum.Material.Grass
+			)
+		end
+	end
+
+	-- Create the tree ON TOP of the hill
 	local tree = Instance.new("Model")
 	tree.Name = "WishingTree"
 
@@ -93,7 +105,7 @@ function WorldBuilder:CreateEllasLookout()
 	local trunk = Instance.new("Part")
 	trunk.Name = "Trunk"
 	trunk.Size = Vector3.new(3, 15, 3)
-	trunk.Position = pos
+	trunk.Position = pos + Vector3.new(0, 7, 0)  -- Trunk base at hill top
 	trunk.Anchored = true
 	trunk.Material = Enum.Material.Wood
 	trunk.BrickColor = BrickColor.new("Brown")
@@ -104,7 +116,7 @@ function WorldBuilder:CreateEllasLookout()
 	foliage.Name = "Foliage"
 	foliage.Shape = Enum.PartType.Ball
 	foliage.Size = Vector3.new(20, 20, 20)
-	foliage.Position = pos + Vector3.new(0, 15, 0)
+	foliage.Position = pos + Vector3.new(0, 20, 0)  -- Above trunk
 	foliage.Anchored = true
 	foliage.Material = Enum.Material.Grass
 	foliage.BrickColor = BrickColor.new("Dark green")
@@ -114,13 +126,13 @@ function WorldBuilder:CreateEllasLookout()
 	local branch = Instance.new("Part")
 	branch.Name = "SwingBranch"
 	branch.Size = Vector3.new(12, 1, 1)
-	branch.Position = pos + Vector3.new(5, 12, 0)
+	branch.Position = pos + Vector3.new(5, 17, 0)  -- At foliage level
 	branch.Anchored = true
 	branch.Material = Enum.Material.Wood
 	branch.BrickColor = BrickColor.new("Brown")
 	branch.Parent = tree
 
-	-- Swing ropes
+	-- Swing ropes (visual only)
 	local leftRope = Instance.new("Part")
 	leftRope.Name = "LeftRope"
 	leftRope.Size = Vector3.new(0.3, 8, 0.3)
@@ -148,11 +160,11 @@ function WorldBuilder:CreateEllasLookout()
 
 	-- Attach swing with constraints
 	local attachment1 = Instance.new("Attachment")
-	attachment1.Position = Vector3.new(-2, 4, 0)
+	attachment1.Position = Vector3.new(-2, 0.25, 0)
 	attachment1.Parent = seat
 
 	local attachment2 = Instance.new("Attachment")
-	attachment2.Position = Vector3.new(2, 4, 0)
+	attachment2.Position = Vector3.new(2, 0.25, 0)
 	attachment2.Parent = seat
 
 	local attachment3 = Instance.new("Attachment")
@@ -179,14 +191,15 @@ function WorldBuilder:CreateEllasLookout()
 
 	tree.Parent = Workspace
 
-	-- Create spawn location
+	-- Create spawn location at base of hill
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "LookoutSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(-10, 0, 0)
+	spawn.Position = Vector3.new(hillCenterX - 40, 12, hillCenterZ)  -- At ground level, to the side
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
+	spawn.CanCollide = true
 	spawn.Parent = Workspace
 
 	print("Ella's Lookout created")
@@ -270,10 +283,11 @@ function WorldBuilder:CreateEllasHouse()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "HouseSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 0, -20)
+	spawn.Position = pos + Vector3.new(0, 1, -20)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Light yellow")
+	spawn.CanCollide = true
 	spawn.Parent = Workspace
 
 	print("Ella's House created")
@@ -346,10 +360,11 @@ function WorldBuilder:CreateWordleLibrary()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "LibrarySpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 0, -22)
+	spawn.Position = pos + Vector3.new(0, 1, -22)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Lavender")
+	spawn.CanCollide = true
 	spawn.Parent = Workspace
 
 	print("Wordle Library created")
@@ -424,10 +439,11 @@ function WorldBuilder:CreateFashionBoutique()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "BoutiqueSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 0, -22)
+	spawn.Position = pos + Vector3.new(0, 1, -22)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Pink")
+	spawn.CanCollide = true
 	spawn.Parent = Workspace
 
 	print("Fashion Boutique created")
@@ -453,10 +469,11 @@ function WorldBuilder:CreateBuildingArea()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "BuildingSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 1, 30)
+	spawn.Position = pos + Vector3.new(0, 2, 30)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Sand yellow")
+	spawn.CanCollide = true
 	spawn.Parent = Workspace
 
 	print("Building Area created")

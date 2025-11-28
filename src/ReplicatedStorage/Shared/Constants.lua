@@ -20,8 +20,8 @@ Constants.XP_MULTIPLIER = 1.5 -- Each level requires 1.5x more XP
 
 -- World Layout Positions
 Constants.WORLD = {
-	RIVER_START = Vector3.new(-300, 8, -100),
-	RIVER_END = Vector3.new(300, 8, 100),
+	RIVER_START = Vector3.new(-300, 11, -100),  -- Raised above ground (Y=10)
+	RIVER_END = Vector3.new(300, 11, 100),
 	TERRAIN_SIZE = Vector3.new(600, 10, 600),
 }
 
@@ -44,7 +44,7 @@ Constants.ZONES = {
 	EllasHouse = {
 		Name = "Ella's House",
 		Description = "Home sweet home",
-		Position = Vector3.new(150, 45, -100),
+		Position = Vector3.new(150, 12, -100),  -- On ground level
 		Color = Color3.fromRGB(255, 200, 150),
 		Icon = "rbxassetid://0",
 	},
