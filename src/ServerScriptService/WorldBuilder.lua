@@ -67,9 +67,10 @@ function WorldBuilder:CreateRiver()
 		)
 
 		-- Carve out air above the river to ensure it's visible
-		-- Water top is at 9.5, so air should start there
-		-- Air block center at 15, height 10 -> range 10 to 20
-		local airPos = Vector3.new(pos.X, 15, pos.Z)
+		-- Water top is at 9.5. Grass is at 10.
+		-- We need to cut BELOW 10. Let's cut down to 9 to be safe.
+		-- Air block center at 14, height 10 -> range 9 to 19
+		local airPos = Vector3.new(pos.X, 14, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(airPos),
 			Vector3.new(25, 10, 25), -- Clear 10 studs above water

@@ -336,14 +336,24 @@ function ClientController:Init()
 		task.spawn(function()
 			while humanoid and humanoid.Parent do
 				task.wait(0.5)
+				
+				-- Check WalkSpeed
 				if humanoid.WalkSpeed ~= 16 then
 					humanoid.WalkSpeed = 16
 					print("Fixed WalkSpeed")
 				end
-				-- Re-enable running state if it gets disabled
+				
+				-- Check States
 				if not humanoid:GetStateEnabled(Enum.HumanoidStateType.Running) then
 					humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
 					print("Re-enabled Running state")
+				end
+				
+				-- Check Anchored (common cause of "stuck in run animation")
+				local rootPart = character:FindFirstChild("HumanoidRootPart")
+				if rootPart and rootPart.Anchored then
+					rootPart.Anchored = false
+					print("Fixed: Unanchored HumanoidRootPart")
 				end
 			end
 		end)
