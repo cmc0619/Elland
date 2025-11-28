@@ -162,7 +162,7 @@ function ZoneManager:Init()
 	-- Spawn players at Hub when they join
 	Players.PlayerAdded:Connect(function(player)
 		player.CharacterAdded:Connect(function(character)
-			wait(0.5) -- Wait for character to fully load
+			-- Teleport immediately, no wait
 			self:TeleportToZone(player, "Hub")
 		end)
 	end)

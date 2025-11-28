@@ -66,13 +66,13 @@ function WorldBuilder:CreateRiver()
 			Enum.Material.Water
 		)
 
-		-- Carve out air above the river to ensure it's not underground
-		-- Water top is 9.5. We want to clear everything above 9.5.
-		-- Air block center at 19.5, height 20 -> range 9.5 to 29.5
-		local airPos = Vector3.new(pos.X, 19.5, pos.Z)
+		-- Carve out air above the river to ensure it's visible
+		-- Water top is at 9.5, so air should start there
+		-- Air block center at 15, height 10 -> range 10 to 20
+		local airPos = Vector3.new(pos.X, 15, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(airPos),
-			Vector3.new(25, 20, 25), -- Clear space above
+			Vector3.new(25, 10, 25), -- Clear 10 studs above water
 			Enum.Material.Air
 		)
 	end
