@@ -323,7 +323,14 @@ function ClientController:Init()
 		humanoid.WalkSpeed = 16
 		humanoid.JumpPower = 50
 		humanoid.AutoRotate = true
-		print("Movement settings enforced")
+		
+		-- Ensure the humanoid can move
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+		
+		print("Movement settings enforced - WalkSpeed:", humanoid.WalkSpeed, "JumpPower:", humanoid.JumpPower)
 	end
 
 	-- Initialize remote events
