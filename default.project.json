@@ -22,6 +22,9 @@
       },
       "WorldBuilder": {
         "$path": "src/ServerScriptService/WorldBuilder.lua"
+      },
+      "InteractionManager": {
+        "$path": "src/ServerScriptService/InteractionManager.lua"
       }
     },
 
@@ -44,6 +47,15 @@
         "$className": "StarterPlayerScripts",
         "ClientController": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/ClientController.lua"
+        },
+        "WordleUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/WordleUI.lua"
+        },
+        "ZoneMenuUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/ZoneMenuUI.lua"
+        },
+        "InteractionHandler": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/InteractionHandler.lua"
         }
       }
     },

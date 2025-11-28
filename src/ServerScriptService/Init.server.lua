@@ -16,6 +16,7 @@ local CurrencyManager = require(ServerScriptService.CurrencyManager)
 local ZoneManager = require(ServerScriptService.ZoneManager)
 local WordleManager = require(ServerScriptService.WordleManager)
 local WorldBuilder = require(ServerScriptService.WorldBuilder)
+local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
 print("Initializing PlayerDataService...")
@@ -33,6 +34,9 @@ WordleManager:Init(PlayerDataService, CurrencyManager)
 -- Build the world (auto-cleans up old world on each run)
 print("Building World...")
 WorldBuilder:BuildWorld()
+
+print("Initializing InteractionManager...")
+InteractionManager:Init()
 
 print("======================")
 print("Elland Server Ready!")
