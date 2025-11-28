@@ -161,11 +161,11 @@ function WorldBuilder:CreateEllasLookout()
 	rightRope.BrickColor = BrickColor.new("Tan")
 	rightRope.Parent = tree
 
-	-- Swing seat
+	-- Swing seat (moved further out from hill)
 	local seat = Instance.new("Seat")
 	seat.Name = "SwingSeat"
 	seat.Size = Vector3.new(4, 0.5, 2)
-	seat.Position = branch.Position + Vector3.new(0, -8, 0)
+	seat.Position = branch.Position + Vector3.new(10, -8, 0)  -- Moved 10 studs away from hill
 	seat.Anchored = false
 	seat.BrickColor = BrickColor.new("Medium brown")
 	seat.Parent = tree
@@ -575,7 +575,7 @@ function WorldBuilder:CreateHub()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "HubSpawn"
 	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.Position = pos + Vector3.new(0, 1, 0)  -- Raise it 1 stud above center
+	spawn.Position = pos + Vector3.new(0, 2, 0)  -- Raise it 2 studs above center (platform is at -1, so this is +1 above platform top)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")

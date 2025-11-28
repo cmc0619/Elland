@@ -9,22 +9,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Load shared constants
-local Constants = require(ReplicatedStorage.Shared.Constants)
-
--- Load UI modules
-local WordleUI = require(script.Parent.WordleUI)
-local ZoneMenuUI = require(script.Parent.ZoneMenuUI)
-
-local ClientController = {}
-
--- Client-side state
-ClientController.Currency = 0
-ClientController.CurrentZone = "Hub"
-ClientController.IsLoading = true
 
 -- Remote Events
 local CurrencyChanged
