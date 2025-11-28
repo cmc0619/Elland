@@ -339,6 +339,16 @@ function ClientController:Init()
 
 	-- Initialize UI modules
 	WordleUI:Init()
+	
+	-- Listen for Wordle open event from server
+	local openWordleEvent = ReplicatedStorage:WaitForChild("OpenWordleUI", 10)
+	if openWordleEvent then
+		openWordleEvent.OnClientEvent:Connect(function()
+			WordleUI:Open()
+		end)
+		print("Wordle UI event connected")
+	end
+	
 	ZoneMenuUI:Init()
 
 	-- Show welcome screen
