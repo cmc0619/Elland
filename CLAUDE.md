@@ -103,6 +103,8 @@ git remote set-url origin https://TOKEN@github.com/cmc0619/Elland.git
 3. Configure remote with token using command above
 4. Push to main
 
+**CRITICAL:** Always push commits to remote immediately. User cannot access local commits - they only see what's pushed to GitHub.
+
 **Security Note:**
 - Token is not persisted between Claude sessions (by design)
 - Rotate the token periodically for security
