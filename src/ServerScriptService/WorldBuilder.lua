@@ -53,13 +53,14 @@ function WorldBuilder:CreateRiver()
 		local meander = math.sin(t * math.pi * 4) * 30
 		x = x + meander
 
-		local y = 3
+		-- Use river Y position from Constants (not hardcoded)
+		local y = riverStart.Y
 
-		-- Create water segment
+		-- Create water segment - make it thinner to fit within terrain
 		local pos = Vector3.new(x, y, z)
 		terrain:FillBlock(
 			CFrame.new(pos),
-			Vector3.new(25, 6, 25),
+			Vector3.new(25, 3, 25),  -- Reduced from 6 to 3 studs tall
 			Enum.Material.Water
 		)
 	end

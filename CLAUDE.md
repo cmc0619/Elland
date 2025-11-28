@@ -112,6 +112,81 @@ git remote set-url origin https://TOKEN@github.com/cmc0619/Elland.git
 - [ ] Test teleportation between zones
 - [ ] Verify data saves/loads correctly
 
+## Terrain and Positioning Lessons Learned
+
+### Issue #2: Understanding Roblox Terrain FillBlock Positioning
+
+**The Problem:**
+When using `Terrain:FillBlock()`, the Y coordinate represents the CENTER of the block, not the bottom. This caused multiple issues:
+- Water blocks appearing above the intended river surface
+- Players spawning underground because terrain was positioned incorrectly
+- Massive underground cross-sections visible when terrain was too tall
+
+**Key Insights:**
+
+1. **FillBlock Y-Coordinate is the CENTER:**
+   ```lua
+   -- If you want terrain from Y=0 to Y=10:
+   terrain:FillBlock(
+       CFrame.new(0, 5, 0),  -- Center at Y=5
+       Vector3.new(600, 10, 600),  -- Height of 10 studs
+       Enum.Material.Grass
+   )
+   -- This creates terrain from Y=0 to Y=10
+   ```
+
+2. **Keep Terrain Thin:**
+   - Started with 100 studs tall → players spawned underground, massive underground volumes
+   - Reduced to 20 studs → still too thick, visible cross-sections
+   - Final: 10 studs (Y=0 to Y=10) → properly thin grass layer
+   - **Lesson:** For a flat grassy field, 10-20 studs is plenty
+
+3. **Spawn Positioning Relative to Terrain:**
+   - Terrain: Y=0 to Y=10 (center at Y=5)
+   - Ground level: Y=10 (top of terrain)
+   - Platform base: Y=11 (1 stud above ground)
+   - Spawn: Y=13 (2-3 studs above ground)
+   - **Critical:** Set `spawn.CanCollide = true` or players fall through!
+
+4. **Use Constants, Not Hardcoded Values:**
+   ```lua
+   -- BAD: Hardcoded values that can get out of sync
+   local y = 3  -- This was causing river to appear at wrong height
+
+   -- GOOD: Use centralized constants
+   local y = Constants.WORLD.RIVER_START.Y  -- Always in sync
+   ```
+
+**What Went Wrong:**
+- River creation used `local y = 3` instead of `Constants.WORLD.RIVER_START.Y`
+- Water blocks were 6 studs tall, extending beyond terrain bounds
+- When Constants were updated to Y=8, the hardcoded value wasn't updated
+
+**The Fix:**
+1. Changed river to use `riverStart.Y` from Constants
+2. Reduced water block height from 6 to 3 studs
+3. Result: Water stays within terrain bounds (Y=6.5 to Y=9.5), well below spawn at Y=12-13
+
+### Issue #3: Iterative Testing and Debugging Process
+
+**Testing Pattern That Works:**
+1. Make a change
+2. Sync with Rojo (verify in Studio Output)
+3. Test in Studio (hit Play)
+4. Check specific issues:
+   - Can player spawn?
+   - Is spawn solid (CanCollide)?
+   - Is terrain at correct height?
+   - Are water/other terrain materials positioned correctly?
+5. If issues found, identify root cause before making next change
+6. Commit working versions frequently
+
+**Debugging Terrain Issues:**
+- If player spawns underground → terrain center Y is too high
+- If player falls through spawn → check `spawn.CanCollide = true`
+- If massive underground blocks visible → terrain height is too large
+- If water appears where it shouldn't → check FillBlock Y coordinate and height
+
 ## Common Issues
 
 ### DataStore Errors in Studio
@@ -123,11 +198,18 @@ DataStores don't work in local Studio testing by default. To enable:
 - Check ZoneManager initialized correctly
 - Verify spawn locations exist in Workspace
 - Check Output for CharacterAdded errors
+- **Verify spawn.CanCollide = true** (players fall through if false!)
 
 ### Currency Not Updating
 - Verify CurrencyChanged RemoteEvent exists in ReplicatedStorage
 - Check server console for CurrencyManager errors
 - Ensure client script is listening to OnClientEvent
+
+### Terrain Positioning Issues
+- Remember: FillBlock Y coordinate is the CENTER, not the bottom
+- Keep terrain reasonably thin (10-20 studs for flat ground)
+- Use Constants.lua for all positioning, never hardcode values
+- Spawns should be 2-3 studs above the terrain top surface
 
 ## Future Improvements
 - [ ] Add error handling for missing spawn locations
@@ -136,10 +218,44 @@ DataStores don't work in local Studio testing by default. To enable:
 - [ ] Create zone templates for faster development
 - [ ] Add automated tests for core systems
 
+## Roblox Development Best Practices
+
+Based on [Roblox Education Curriculum](https://create.roblox.com/docs/education/lesson-plans/roblox-developer-lesson):
+
+### Code Organization
+- **Proper indentation matters** - Makes code readable and maintainable
+- **Accurate capitalization** - Roblox APIs are case-sensitive (`FindFirstChildWhichIsA`, not `findfirstchildwhichisa`)
+- **Use functions for reusable code** - Don't repeat yourself
+- **Organize with the Explorer hierarchy** - Parent-child relationships are crucial
+
+### Testing and Iteration
+- **Playtest with specific goals** - Don't just "play around", test specific features
+- **Test early and often** - Catch issues before they compound
+- **Iterate on design** - First version won't be perfect, improve based on testing
+- **Balance is key** - Make games "challenging but fair" for target age group
+
+### Variables and Data
+- **Variables are placeholders** - Use descriptive names that explain their purpose
+- **Strings store text** - Use for UI labels, player names, etc.
+- **Understand data types** - Numbers, strings, booleans each have their place
+
+### Problem Solving
+- **Read error messages carefully** - They usually point to the exact problem
+- **Check the Output window** - Lua errors and print statements appear here
+- **Ask peers first** - Sometimes explaining the problem helps you solve it
+- **Use print() for debugging** - Add print statements to track code execution
+
+### Game Design Considerations
+- **Think about your audience** - Elland is for an 11-year-old, keep complexity appropriate
+- **Start simple, add complexity** - Get basic features working before adding advanced ones
+- **Consider player motivation** - Why will players want to explore different zones?
+- **Balance progression** - Currency and unlocks should feel rewarding but achievable
+
 ## Resources
 - [Rojo Documentation](https://rojo.space/docs)
 - [Roblox DataStore Guide](https://create.roblox.com/docs/cloud-services/data-stores)
 - [Roblox Remote Events](https://create.roblox.com/docs/scripting/events/remote)
+- [Roblox Education Curriculum](https://create.roblox.com/docs/education/lesson-plans/roblox-developer-lesson)
 
 ---
 
