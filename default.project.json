@@ -1,0 +1,77 @@
+{
+  "name": "Elland",
+  "tree": {
+    "$className": "DataModel",
+
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "PlayerDataService": {
+        "$path": "src/ServerScriptService/PlayerDataService.lua"
+      },
+      "CurrencyManager": {
+        "$path": "src/ServerScriptService/CurrencyManager.lua"
+      },
+      "ZoneManager": {
+        "$path": "src/ServerScriptService/ZoneManager.lua"
+      }
+    },
+
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "Constants": {
+          "$path": "src/ReplicatedStorage/Shared/Constants.lua"
+        }
+      },
+      "Modules": {
+        "$className": "Folder",
+        "$path": "src/ReplicatedStorage/Modules"
+      }
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "ClientController": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/ClientController.lua"
+        }
+      }
+    },
+
+    "StarterGui": {
+      "$className": "StarterGui",
+      "UI": {
+        "$className": "Folder",
+        "$path": "src/StarterGui/UI"
+      }
+    },
+
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "FilteringEnabled": true
+      },
+      "Zones": {
+        "$className": "Folder",
+        "WordGarden": {
+          "$className": "Folder",
+          "$path": "src/Workspace/Zones/WordGarden"
+        },
+        "FashionDistrict": {
+          "$className": "Folder",
+          "$path": "src/Workspace/Zones/FashionDistrict"
+        },
+        "MathAcademy": {
+          "$className": "Folder",
+          "$path": "src/Workspace/Zones/MathAcademy"
+        },
+        "CreativeCommons": {
+          "$className": "Folder",
+          "$path": "src/Workspace/Zones/CreativeCommons"
+        }
+      }
+    }
+  }
+}
