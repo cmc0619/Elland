@@ -41,31 +41,35 @@ function WorldBuilder:CreateRiver()
 	local riverEnd = Constants.WORLD.RIVER_END
 
 	-- Create river path with meanders
-	local segments = 20
+	local segments = 100 -- Increased to prevent gaps
+	local totalDist = (riverEnd - riverStart).Magnitude
+	local dir = (riverEnd - riverStart).Unit
+	local perp = Vector3.new(-dir.Z, 0, dir.X) -- Perpendicular vector for meandering
+
 	for i = 0, segments do
 		local t = i / segments
-
-		-- Linear interpolation with sine wave for meandering
-		local x = riverStart.X + (riverEnd.X - riverStart.X) * t
-		local z = riverStart.Z + (riverEnd.Z - riverStart.Z) * t
+		
+		-- Base position along the line
+		local basePos = riverStart + (dir * (totalDist * t))
 
 		-- Add meandering (sine wave perpendicular to river direction)
-		local meander = math.sin(t * math.pi * 4) * 30
-		x = x + meander
+		local meanderOffset = math.sin(t * math.pi * 4) * 30
+		local pos = basePos + (perp * meanderOffset)
+		
+		-- Ensure Y is correct (Center at 8, so top is 9.5)
+		pos = Vector3.new(pos.X, 8, pos.Z)
 
-		-- Use river Y position from Constants (not hardcoded)
-		local y = riverStart.Y
-
-		-- Create water segment - make it thinner to fit within terrain
-		local pos = Vector3.new(x, y, z)
+		-- Create water segment
 		terrain:FillBlock(
 			CFrame.new(pos),
-			Vector3.new(25, 3, 25),  -- Reduced from 6 to 3 studs tall
+			Vector3.new(25, 3, 25),  -- 3 studs tall (6.5 to 9.5)
 			Enum.Material.Water
 		)
 
 		-- Carve out air above the river to ensure it's not underground
-		local airPos = pos + Vector3.new(0, 10, 0)
+		-- Water top is 9.5. We want to clear everything above 9.5.
+		-- Air block center at 19.5, height 20 -> range 9.5 to 29.5
+		local airPos = Vector3.new(pos.X, 19.5, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(airPos),
 			Vector3.new(25, 20, 25), -- Clear space above
