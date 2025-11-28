@@ -18,30 +18,54 @@ Constants.STARTING_CURRENCY = 100
 Constants.XP_PER_LEVEL = 100
 Constants.XP_MULTIPLIER = 1.5 -- Each level requires 1.5x more XP
 
--- Zones
+-- World Layout Positions
+Constants.WORLD = {
+	RIVER_START = Vector3.new(-300, 5, -100),
+	RIVER_END = Vector3.new(300, 5, 100),
+	TERRAIN_SIZE = Vector3.new(600, 100, 600),
+}
+
+-- Zones with world positions
 Constants.ZONES = {
 	Hub = {
-		Name = "Central Hub",
-		Color = Color3.fromRGB(200, 200, 200),
-		Icon = "rbxassetid://0", -- Replace with actual asset IDs
-	},
-	WordGarden = {
-		Name = "Word Garden",
-		Color = Color3.fromRGB(100, 200, 100),
-		Icon = "rbxassetid://0",
-	},
-	FashionDistrict = {
-		Name = "Fashion District",
-		Color = Color3.fromRGB(255, 150, 200),
-		Icon = "rbxassetid://0",
-	},
-	MathAcademy = {
-		Name = "Math Academy",
+		Name = "By the River",
+		Description = "The peaceful center of Elland",
+		Position = Vector3.new(0, 5, 0),
 		Color = Color3.fromRGB(100, 150, 255),
 		Icon = "rbxassetid://0",
 	},
-	CreativeCommons = {
-		Name = "Creative Commons",
+	EllasLookout = {
+		Name = "Ella's Lookout",
+		Description = "A big hill with a tree and swing - perfect for thinking",
+		Position = Vector3.new(200, 80, -200),
+		Color = Color3.fromRGB(100, 200, 100),
+		Icon = "rbxassetid://0",
+	},
+	EllasHouse = {
+		Name = "Ella's House",
+		Description = "Home sweet home",
+		Position = Vector3.new(150, 20, -100),
+		Color = Color3.fromRGB(255, 200, 150),
+		Icon = "rbxassetid://0",
+	},
+	WordleLibrary = {
+		Name = "Wordle Library",
+		Description = "Solve daily word puzzles and challenges",
+		Position = Vector3.new(-200, 5, 200),
+		Color = Color3.fromRGB(200, 150, 255),
+		Icon = "rbxassetid://0",
+	},
+	FashionBoutique = {
+		Name = "Fashion Boutique",
+		Description = "Express yourself through style and design",
+		Position = Vector3.new(200, 5, 200),
+		Color = Color3.fromRGB(255, 150, 200),
+		Icon = "rbxassetid://0",
+	},
+	BuildingArea = {
+		Name = "Building Area",
+		Description = "Create and build your own structures",
+		Position = Vector3.new(-200, 5, -200),
 		Color = Color3.fromRGB(255, 200, 100),
 		Icon = "rbxassetid://0",
 	},
@@ -54,33 +78,35 @@ Constants.UI = {
 	NOTIFICATION_DURATION = 3,
 }
 
--- Word Garden Settings
-Constants.WORD_GARDEN = {
-	MIN_WORD_LENGTH = 3,
-	MAX_WORD_LENGTH = 10,
-	TIME_PER_PUZZLE = 60,
-	BONUS_TIME = 10,
+-- Wordle Library Settings
+Constants.WORDLE = {
+	WORD_LENGTH = 5,
+	MAX_ATTEMPTS = 6,
+	DAILY_REWARD = 50,
+	WORDS = {
+		-- 5-letter words appropriate for 11-13 year olds
+		"APPLE", "BEACH", "BRAVE", "CREEK", "DANCE", "DREAM", "FAIRY",
+		"FLAME", "GLOBE", "GRACE", "HEART", "HORSE", "HOUSE", "LAUGH",
+		"LIGHT", "MAGIC", "MUSIC", "OCEAN", "PEACE", "PLANT", "RIVER",
+		"SHINE", "SMILE", "SPARK", "STORY", "SWEET", "SWIFT", "THINK",
+		"TRAIL", "TRUST", "VOICE", "WATER", "WORLD", "WRITE", "YOUTH",
+	},
 }
 
--- Fashion District Settings
-Constants.FASHION_DISTRICT = {
+-- Fashion Boutique Settings
+Constants.FASHION = {
 	MAX_OUTFIT_SLOTS = 10,
 	MAX_ITEMS_PER_OUTFIT = 8,
 	SHOWCASE_DURATION = 30,
+	CLOTHING_CATEGORIES = {"Tops", "Bottoms", "Shoes", "Accessories", "Hair"},
 }
 
--- Math Academy Settings
-Constants.MATH_ACADEMY = {
-	PROBLEMS_PER_QUIZ = 10,
-	TIME_PER_PROBLEM = 30,
-	DIFFICULTY_LEVELS = {"Easy", "Medium", "Hard"},
-}
-
--- Creative Commons Settings
-Constants.CREATIVE_COMMONS = {
+-- Building Area Settings
+Constants.BUILDING = {
 	MAX_BUILDS = 20,
 	MAX_PARTS_PER_BUILD = 500,
 	SAVE_COOLDOWN = 5,
+	ALLOWED_PARTS = {"Part", "Wedge", "Sphere", "Cylinder", "TrussPart"},
 }
 
 -- Color Palette

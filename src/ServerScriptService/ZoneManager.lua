@@ -8,6 +8,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Constants = require(ReplicatedStorage.Shared.Constants)
+
 local ZoneManager = {}
 
 -- RemoteEvent for teleportation requests
@@ -15,65 +17,28 @@ local TeleportRequest = Instance.new("RemoteEvent")
 TeleportRequest.Name = "TeleportRequest"
 TeleportRequest.Parent = ReplicatedStorage
 
--- Zone spawn locations (to be set in Workspace)
--- These will be SpawnLocation parts in each zone folder
-local ZONES = {
-	Hub = {
-		Name = "Central Hub",
-		Description = "The heart of Elland - choose your next adventure!",
-		SpawnLocation = nil, -- Will be set during Init
-	},
-	WordGarden = {
-		Name = "Word Garden",
-		Description = "Grow your vocabulary with word puzzles and language games",
-		SpawnLocation = nil,
-	},
-	FashionDistrict = {
-		Name = "Fashion District",
-		Description = "Express yourself through style and creativity",
-		SpawnLocation = nil,
-	},
-	MathAcademy = {
-		Name = "Math Academy",
-		Description = "Sharpen your mind with algebra and number challenges",
-		SpawnLocation = nil,
-	},
-	CreativeCommons = {
-		Name = "Creative Commons",
-		Description = "Build, design, and showcase your creations",
-		SpawnLocation = nil,
-	},
-}
+-- Zone spawn locations (populated from Constants and Workspace)
+local ZONES = {}
 
--- Create or find spawn location for a zone
-local function getOrCreateSpawnLocation(zoneName, parentFolder)
-	local spawnLocation = parentFolder:FindFirstChild("SpawnLocation")
+-- Find spawn location in Workspace (created by WorldBuilder)
+local function findSpawnLocation(zoneName)
+	-- Spawn locations are named like "LookoutSpawn", "HouseSpawn", etc.
+	local spawnNames = {
+		Hub = "HubSpawn",
+		EllasLookout = "LookoutSpawn",
+		EllasHouse = "HouseSpawn",
+		WordleLibrary = "LibrarySpawn",
+		FashionBoutique = "BoutiqueSpawn",
+		BuildingArea = "BuildingSpawn",
+	}
 
-	if not spawnLocation then
-		-- Create a spawn location if it doesn't exist
-		spawnLocation = Instance.new("SpawnLocation")
-		spawnLocation.Name = "SpawnLocation"
-		spawnLocation.Transparency = 0.5
-		spawnLocation.Size = Vector3.new(8, 1, 8)
-		spawnLocation.Anchored = true
-		spawnLocation.CanCollide = true
-
-		-- Position it in a grid pattern based on zone
-		local positions = {
-			Hub = Vector3.new(0, 5, 0),
-			WordGarden = Vector3.new(100, 5, 0),
-			FashionDistrict = Vector3.new(-100, 5, 0),
-			MathAcademy = Vector3.new(0, 5, 100),
-			CreativeCommons = Vector3.new(0, 5, -100),
-		}
-
-		spawnLocation.Position = positions[zoneName] or Vector3.new(0, 5, 0)
-		spawnLocation.Parent = parentFolder
-
-		print("Created spawn location for", zoneName)
+	local spawnName = spawnNames[zoneName]
+	if not spawnName then
+		return nil
 	end
 
-	return spawnLocation
+	local spawn = Workspace:FindFirstChild(spawnName, true)
+	return spawn
 end
 
 -- Teleport player to a zone
@@ -159,33 +124,26 @@ end
 
 -- Initialize the manager
 function ZoneManager:Init()
-	-- Set up spawn locations for each zone
-	local zonesFolder = Workspace:FindFirstChild("Zones")
+	-- Populate ZONES from Constants
+	for zoneName, zoneData in pairs(Constants.ZONES) do
+		ZONES[zoneName] = {
+			Name = zoneData.Name,
+			Description = zoneData.Description,
+			Position = zoneData.Position,
+			SpawnLocation = nil,
+		}
+	end
 
-	if zonesFolder then
-		-- Set up named zones
-		for zoneName, zoneData in pairs(ZONES) do
-			if zoneName ~= "Hub" then
-				local zoneFolder = zonesFolder:FindFirstChild(zoneName)
-				if zoneFolder then
-					ZONES[zoneName].SpawnLocation = getOrCreateSpawnLocation(zoneName, zoneFolder)
-				else
-					warn("Zone folder not found:", zoneName)
-				end
-			end
+	-- Find spawn locations created by WorldBuilder
+	for zoneName, zoneData in pairs(ZONES) do
+		local spawn = findSpawnLocation(zoneName)
+		if spawn then
+			zoneData.SpawnLocation = spawn
+			print("Found spawn location for", zoneName)
+		else
+			warn("Spawn location not found for", zoneName, "- run WorldBuilder to create it")
 		end
-	else
-		warn("Zones folder not found in Workspace")
 	end
-
-	-- Create hub spawn location in Workspace root
-	local hubFolder = Workspace:FindFirstChild("Hub")
-	if not hubFolder then
-		hubFolder = Instance.new("Folder")
-		hubFolder.Name = "Hub"
-		hubFolder.Parent = Workspace
-	end
-	ZONES.Hub.SpawnLocation = getOrCreateSpawnLocation("Hub", hubFolder)
 
 	-- Handle teleportation requests from clients
 	TeleportRequest.OnServerEvent:Connect(function(player, zoneName)

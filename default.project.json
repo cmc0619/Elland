@@ -16,6 +16,12 @@
       },
       "ZoneManager": {
         "$path": "src/ServerScriptService/ZoneManager.lua"
+      },
+      "WordleManager": {
+        "$path": "src/ServerScriptService/WordleManager.lua"
+      },
+      "WorldBuilder": {
+        "$path": "src/ServerScriptService/WorldBuilder.lua"
       }
     },
 
