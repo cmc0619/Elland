@@ -295,7 +295,7 @@ function ClientController:CreateWelcomeScreen()
 	buttonCorner.CornerRadius = UDim.new(0, 12)
 	buttonCorner.Parent = continueButton
 
-	continueButton.MouseButton1Click:Connect(function()
+	local function closeWelcomeScreen()
 		TweenService:Create(background, TweenInfo.new(0.5), {
 			BackgroundTransparency = 1
 		}):Play()
@@ -315,7 +315,12 @@ function ClientController:CreateWelcomeScreen()
 
 		task.wait(0.5)
 		screenGui:Destroy()
-	end)
+	end
+
+	continueButton.MouseButton1Click:Connect(closeWelcomeScreen)
+
+	-- Auto-close after 3 seconds so player isn't stuck
+	task.delay(3, closeWelcomeScreen)
 
 	screenGui.Parent = playerGui
 end
