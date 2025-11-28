@@ -359,8 +359,8 @@ function ClientController:Init()
 	ZoneMenuUI:Init()
 
 	-- Show welcome screen
-	task.wait(1)
-	self:CreateWelcomeScreen()
+	-- task.wait(1)
+	-- self:CreateWelcomeScreen()  -- TEMPORARILY DISABLED TO TEST MOVEMENT
 
 	-- Update displays
 	self:UpdateCurrencyDisplay()
