@@ -531,12 +531,15 @@ function WorldBuilder:CreateHub()
 	print("Creating Hub...")
 
 	local pos = Constants.ZONES.Hub.Position
+	-- Hub should be ON the terrain (Y=10), not floating
+	local groundLevel = 10
+	local hubCenter = Vector3.new(pos.X, groundLevel, pos.Z)
 
 	-- Create a nice platform by the river
 	local platform = Instance.new("Part")
 	platform.Name = "HubPlatform"
 	platform.Size = Vector3.new(20, 2, 20)
-	platform.Position = pos + Vector3.new(0, -1, 0)  -- Lower it 1 stud
+	platform.Position = hubCenter + Vector3.new(0, 1, 0)  -- Platform center at Y=11
 	platform.Anchored = true
 	platform.BrickColor = BrickColor.new("Sand blue")
 	platform.Material = Enum.Material.Slate
@@ -545,7 +548,7 @@ function WorldBuilder:CreateHub()
 	-- Add some decorative elements
 	local bench = Instance.new("Part")
 	bench.Size = Vector3.new(6, 2, 2)
-	bench.Position = pos + Vector3.new(0, 1.5, 8)
+	bench.Position = hubCenter + Vector3.new(0, 3.5, 8)  -- On top of platform
 	bench.Anchored = true
 	bench.BrickColor = BrickColor.new("Brown")
 	bench.Parent = Workspace
@@ -553,7 +556,7 @@ function WorldBuilder:CreateHub()
 	-- Welcome sign
 	local sign = Instance.new("Part")
 	sign.Size = Vector3.new(10, 5, 0.5)
-	sign.Position = pos + Vector3.new(0, 3, -10)
+	sign.Position = hubCenter + Vector3.new(0, 4.5, -10)  -- On top of platform
 	sign.Anchored = true
 	sign.BrickColor = BrickColor.new("White")
 	sign.Parent = Workspace
@@ -575,7 +578,7 @@ function WorldBuilder:CreateHub()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "HubSpawn"
 	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.Position = pos + Vector3.new(0, 2, 0)  -- Raise it 2 studs above center (platform is at -1, so this is +1 above platform top)
+	spawn.Position = hubCenter + Vector3.new(0, 2.5, 0)  -- On top of platform (platform top is Y=12, spawn center at Y=12.5)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
