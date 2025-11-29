@@ -57,14 +57,12 @@ function InteractionManager:CreateWordlePrompt()
 	prompt.Triggered:Connect(function(player)
 		-- Fire remote to open Wordle UI
 		local openWordle = ReplicatedStorage:FindFirstChild("OpenWordleUI")
-		if not openWordle then
-			openWordle = Instance.new("RemoteEvent")
-			openWordle.Name = "OpenWordleUI"
-			openWordle.Parent = ReplicatedStorage
+		if openWordle then
+			openWordle:FireClient(player)
+			print(player.Name, "opened Wordle UI")
+		else
+			warn("OpenWordleUI RemoteEvent not found!")
 		end
-
-		openWordle:FireClient(player)
-		print(player.Name, "opened Wordle UI")
 	end)
 
 	print("Wordle interaction created")
@@ -199,6 +197,12 @@ end
 
 -- Initialize all interactions
 function InteractionManager:Init()
+	-- Create RemoteEvents upfront (so clients can connect to them)
+	local openWordle = Instance.new("RemoteEvent")
+	openWordle.Name = "OpenWordleUI"
+	openWordle.Parent = ReplicatedStorage
+	print("Created OpenWordleUI RemoteEvent")
+	
 	-- Wait a moment for world to build
 	task.wait(2)
 

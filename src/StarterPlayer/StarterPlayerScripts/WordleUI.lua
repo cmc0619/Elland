@@ -337,30 +337,52 @@ end
 
 -- Open Wordle UI
 function WordleUI:Open()
-	if self.IsOpen then return end
+	print("WordleUI:Open() called")
+	
+	if self.IsOpen then 
+		print("WordleUI already open, returning")
+		return 
+	end
 
 	self.IsOpen = true
 	self.CurrentGuess = ""
 	self.CurrentRow = 1
 
 	-- Reset grid
-	for row = 1, Constants.WORDLE.MAX_ATTEMPTS do
-		for col = 1, Constants.WORDLE.WORD_LENGTH do
-			local box = self.GuessBoxes[row][col]
-			box.BackgroundColor3 = COLORS.EMPTY
-			box:FindFirstChild("Letter").Text = ""
+	if self.GuessBoxes then
+		for row = 1, Constants.WORDLE.MAX_ATTEMPTS do
+			for col = 1, Constants.WORDLE.WORD_LENGTH do
+				local box = self.GuessBoxes[row] and self.GuessBoxes[row][col]
+				if box then
+					box.BackgroundColor3 = COLORS.EMPTY
+					local letter = box:FindFirstChild("Letter")
+					if letter then letter.Text = "" end
+				end
+			end
 		end
 	end
 
 	-- Reset keyboard
-	for _, button in pairs(self.KeyboardButtons) do
-		button.BackgroundColor3 = Color3.fromRGB(211, 214, 218)
+	if self.KeyboardButtons then
+		for _, button in pairs(self.KeyboardButtons) do
+			button.BackgroundColor3 = Color3.fromRGB(211, 214, 218)
+		end
 	end
 
-	self.ScreenGui.Enabled = true
+	if self.ScreenGui then
+		self.ScreenGui.Enabled = true
+		print("WordleUI: ScreenGui enabled")
+	else
+		warn("WordleUI: ScreenGui is nil!")
+	end
 
 	-- Request game state
-	WordleNewGame:FireServer()
+	if WordleNewGame then
+		WordleNewGame:FireServer()
+		print("WordleUI: Requested new game state")
+	else
+		warn("WordleUI: WordleNewGame RemoteEvent is nil!")
+	end
 end
 
 -- Close Wordle UI
@@ -440,17 +462,22 @@ end
 
 -- Initialize
 function WordleUI:Init()
+	print("WordleUI:Init() starting...")
+	
 	-- Initialize remote events now (lazy loading to avoid blocking module load)
 	WordleGuess = ReplicatedStorage:WaitForChild("WordleGuess", 10)
 	WordleResult = ReplicatedStorage:WaitForChild("WordleResult", 10)
 	WordleNewGame = ReplicatedStorage:WaitForChild("WordleNewGame", 10)
 	
+	print("WordleUI: Remote events found:", WordleGuess ~= nil, WordleResult ~= nil, WordleNewGame ~= nil)
+	
 	if not WordleGuess or not WordleResult or not WordleNewGame then
-		warn("WordleUI: Could not find all remote events")
+		warn("WordleUI: Could not find all remote events - UI will not work!")
 		return
 	end
 	
 	self:CreateUI()
+	print("WordleUI: UI created, ScreenGui =", self.ScreenGui ~= nil)
 
 	-- Listen for results
 	WordleResult.OnClientEvent:Connect(function(data)
