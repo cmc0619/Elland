@@ -9,17 +9,41 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
+-- Get player references
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Load shared modules
+local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+
+-- Load UI modules (they're LocalScripts, so we require them)
+local WordleUI = require(script.Parent:WaitForChild("WordleUI"))
+local ZoneMenuUI = require(script.Parent:WaitForChild("ZoneMenuUI"))
+
+-- Create the ClientController table
+local ClientController = {}
+ClientController.Currency = 0
+ClientController.CurrentZone = "Hub"
+ClientController.IsLoading = true
+ClientController.MainHUD = nil
+ClientController.CurrencyLabel = nil
+ClientController.ZoneLabel = nil
+ClientController.ZoneFrame = nil
 
 -- Remote Events
 local CurrencyChanged
 local TeleportRequest
 
--- Initialize RemoteEvents
+-- Initialize RemoteEvents with timeout to avoid blocking
 local function initializeRemotes()
-	CurrencyChanged = ReplicatedStorage:WaitForChild("CurrencyChanged")
-	TeleportRequest = ReplicatedStorage:WaitForChild("TeleportRequest")
+	CurrencyChanged = ReplicatedStorage:WaitForChild("CurrencyChanged", 10)
+	TeleportRequest = ReplicatedStorage:WaitForChild("TeleportRequest", 10)
 
-	print("RemoteEvents initialized")
+	if CurrencyChanged and TeleportRequest then
+		print("RemoteEvents initialized")
+	else
+		warn("Some RemoteEvents failed to initialize - server may still be starting")
+	end
 end
 
 -- Handle currency updates from server
@@ -37,6 +61,8 @@ end
 
 -- Show currency gain animation
 function ClientController:ShowCurrencyGain(amount)
+	if not self.MainHUD then return end
+	
 	local notification = Instance.new("TextLabel")
 	notification.Size = UDim2.new(0, 200, 0, 40)
 	notification.Position = UDim2.new(1, -220, 0, 80)
@@ -70,6 +96,8 @@ end
 
 -- Show currency loss animation
 function ClientController:ShowCurrencyLoss(amount)
+	if not self.MainHUD then return end
+	
 	local notification = Instance.new("TextLabel")
 	notification.Size = UDim2.new(0, 200, 0, 40)
 	notification.Position = UDim2.new(1, -220, 0, 80)
@@ -309,88 +337,118 @@ function ClientController:CreateWelcomeScreen()
 	screenGui.Parent = playerGui
 end
 
+-- Set up movement for a character
+local function setupCharacterMovement(character)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if not humanoid then
+		warn("Could not find Humanoid")
+		return
+	end
+	
+	humanoid.WalkSpeed = 16
+	humanoid.JumpPower = 50
+	humanoid.AutoRotate = true
+	
+	-- Ensure the humanoid can move
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+	
+	print("Movement settings enforced - WalkSpeed:", humanoid.WalkSpeed, "JumpPower:", humanoid.JumpPower)
+	
+	-- Monitor and fix movement if it gets stuck
+	task.spawn(function()
+		while humanoid and humanoid.Parent do
+			task.wait(0.5)
+			
+			-- Check WalkSpeed
+			if humanoid.WalkSpeed ~= 16 then
+				humanoid.WalkSpeed = 16
+				print("Fixed WalkSpeed")
+			end
+			
+			-- Check States
+			if not humanoid:GetStateEnabled(Enum.HumanoidStateType.Running) then
+				humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+				print("Re-enabled Running state")
+			end
+			
+			-- Check Anchored (common cause of "stuck in run animation")
+			local rootPart = character:FindFirstChild("HumanoidRootPart")
+			if rootPart and rootPart.Anchored then
+				rootPart.Anchored = false
+				print("Fixed: Unanchored HumanoidRootPart")
+			end
+		end
+		print("Movement monitor ended (character removed)")
+	end)
+end
+
 -- Initialize the controller
 function ClientController:Init()
 	print("Initializing ClientController for", player.Name)
 
-	-- Wait for character
-	local character = player.Character or player.CharacterAdded:Wait()
-	print("Character loaded")
-
-	-- Enforce movement settings
-	local humanoid = character:WaitForChild("Humanoid")
-	if humanoid then
-		humanoid.WalkSpeed = 16
-		humanoid.JumpPower = 50
-		humanoid.AutoRotate = true
-		
-		-- Ensure the humanoid can move
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-		
-		print("Movement settings enforced - WalkSpeed:", humanoid.WalkSpeed, "JumpPower:", humanoid.JumpPower)
-		
-		-- Monitor and fix movement if it gets stuck
-		task.spawn(function()
-			while humanoid and humanoid.Parent do
-				task.wait(0.5)
-				
-				-- Check WalkSpeed
-				if humanoid.WalkSpeed ~= 16 then
-					humanoid.WalkSpeed = 16
-					print("Fixed WalkSpeed")
-				end
-				
-				-- Check States
-				if not humanoid:GetStateEnabled(Enum.HumanoidStateType.Running) then
-					humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-					print("Re-enabled Running state")
-				end
-				
-				-- Check Anchored (common cause of "stuck in run animation")
-				local rootPart = character:FindFirstChild("HumanoidRootPart")
-				if rootPart and rootPart.Anchored then
-					rootPart.Anchored = false
-					print("Fixed: Unanchored HumanoidRootPart")
-				end
-			end
-		end)
+	-- Set up movement for current character
+	if player.Character then
+		setupCharacterMovement(player.Character)
 	end
+	
+	-- Handle character respawns
+	player.CharacterAdded:Connect(function(newCharacter)
+		print("Character respawned, setting up movement")
+		setupCharacterMovement(newCharacter)
+	end)
 
 	-- Initialize remote events
 	initializeRemotes()
 
-	-- Set up event listeners
-	CurrencyChanged.OnClientEvent:Connect(function(newAmount, change)
-		onCurrencyChanged(newAmount, change)
-	end)
+	-- Set up event listeners (if remotes exist)
+	if CurrencyChanged then
+		CurrencyChanged.OnClientEvent:Connect(function(newAmount, change)
+			onCurrencyChanged(newAmount, change)
+		end)
+	end
 
 	-- Create HUD
-	self:CreateHUD()
+	local hudSuccess, hudError = pcall(function()
+		self:CreateHUD()
+	end)
+	if not hudSuccess then
+		warn("HUD creation failed:", hudError)
+	end
 
-	-- Initialize UI modules
-	WordleUI:Init()
+	-- Initialize UI modules with error protection
+	local wordleSuccess, wordleError = pcall(function()
+		WordleUI:Init()
+	end)
+	if not wordleSuccess then
+		warn("WordleUI init failed:", wordleError)
+	end
 	
 	-- Listen for Wordle open event from server
 	local openWordleEvent = ReplicatedStorage:WaitForChild("OpenWordleUI", 10)
 	if openWordleEvent then
 		openWordleEvent.OnClientEvent:Connect(function()
-			WordleUI:Open()
+			if WordleUI and WordleUI.Open then
+				WordleUI:Open()
+			end
 		end)
 		print("Wordle UI event connected")
 	end
 	
-	ZoneMenuUI:Init()
-
-	-- Show welcome screen
-	-- task.wait(1)
-	-- self:CreateWelcomeScreen()  -- TEMPORARILY DISABLED TO TEST MOVEMENT
+	local zoneSuccess, zoneError = pcall(function()
+		ZoneMenuUI:Init()
+	end)
+	if not zoneSuccess then
+		warn("ZoneMenuUI init failed:", zoneError)
+	end
 
 	-- Update displays
-	self:UpdateCurrencyDisplay()
-	self:UpdateZoneDisplay()
+	pcall(function()
+		self:UpdateCurrencyDisplay()
+		self:UpdateZoneDisplay()
+	end)
 
 	-- Finished loading
 	self.IsLoading = false

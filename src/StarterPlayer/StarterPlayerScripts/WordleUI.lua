@@ -11,14 +11,14 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local Constants = require(ReplicatedStorage.Shared.Constants)
-
--- Remote Events
-local WordleGuess = ReplicatedStorage:WaitForChild("WordleGuess")
-local WordleResult = ReplicatedStorage:WaitForChild("WordleResult")
-local WordleNewGame = ReplicatedStorage:WaitForChild("WordleNewGame")
+local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
 local WordleUI = {}
+
+-- Remote Events (initialized later to avoid blocking)
+local WordleGuess
+local WordleResult
+local WordleNewGame
 WordleUI.IsOpen = false
 WordleUI.CurrentGuess = ""
 WordleUI.CurrentRow = 1
@@ -440,6 +440,16 @@ end
 
 -- Initialize
 function WordleUI:Init()
+	-- Initialize remote events now (lazy loading to avoid blocking module load)
+	WordleGuess = ReplicatedStorage:WaitForChild("WordleGuess", 10)
+	WordleResult = ReplicatedStorage:WaitForChild("WordleResult", 10)
+	WordleNewGame = ReplicatedStorage:WaitForChild("WordleNewGame", 10)
+	
+	if not WordleGuess or not WordleResult or not WordleNewGame then
+		warn("WordleUI: Could not find all remote events")
+		return
+	end
+	
 	self:CreateUI()
 
 	-- Listen for results

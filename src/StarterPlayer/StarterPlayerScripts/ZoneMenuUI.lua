@@ -12,13 +12,13 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local Constants = require(ReplicatedStorage.Shared.Constants)
+local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
 local ZoneMenuUI = {}
 ZoneMenuUI.IsOpen = false
 
--- Remote Event
-local TeleportRequest = ReplicatedStorage:WaitForChild("TeleportRequest")
+-- Remote Event (initialized later to avoid blocking)
+local TeleportRequest
 
 -- Create the zone menu
 function ZoneMenuUI:CreateUI()
@@ -270,6 +270,13 @@ end
 
 -- Initialize
 function ZoneMenuUI:Init()
+	-- Initialize remote event now (lazy loading to avoid blocking module load)
+	TeleportRequest = ReplicatedStorage:WaitForChild("TeleportRequest", 10)
+	
+	if not TeleportRequest then
+		warn("ZoneMenuUI: Could not find TeleportRequest remote event")
+	end
+	
 	self:CreateUI()
 
 	-- Listen for M key to open menu

@@ -17,11 +17,19 @@ function InteractionManager:CreateWordlePrompt()
 		return
 	end
 
+	-- Get position from Model (use GetPivot for Models, Position for Parts)
+	local libraryPos
+	if library:IsA("Model") then
+		libraryPos = library:GetPivot().Position
+	else
+		libraryPos = library.Position
+	end
+
 	-- Create an invisible part for interaction
 	local interactionPart = Instance.new("Part")
 	interactionPart.Name = "WordleInteraction"
 	interactionPart.Size = Vector3.new(8, 8, 8)
-	interactionPart.Position = library.Position + Vector3.new(0, 4, -20)
+	interactionPart.Position = libraryPos + Vector3.new(0, 4, -20)
 	interactionPart.Anchored = true
 	interactionPart.CanCollide = false
 	interactionPart.Transparency = 0.5
@@ -48,9 +56,12 @@ function InteractionManager:CreateWordlePrompt()
 	-- Handle interaction
 	prompt.Triggered:Connect(function(player)
 		-- Fire remote to open Wordle UI
-		local openWordle = Instance.new("RemoteEvent")
-		openWordle.Name = "OpenWordleUI"
-		openWordle.Parent = ReplicatedStorage
+		local openWordle = ReplicatedStorage:FindFirstChild("OpenWordleUI")
+		if not openWordle then
+			openWordle = Instance.new("RemoteEvent")
+			openWordle.Name = "OpenWordleUI"
+			openWordle.Parent = ReplicatedStorage
+		end
 
 		openWordle:FireClient(player)
 		print(player.Name, "opened Wordle UI")
@@ -67,10 +78,18 @@ function InteractionManager:CreateFashionPrompt()
 		return
 	end
 
+	-- Get position from Model or Part
+	local boutiquePos
+	if boutique:IsA("Model") then
+		boutiquePos = boutique:GetPivot().Position
+	else
+		boutiquePos = boutique.Position
+	end
+
 	local interactionPart = Instance.new("Part")
 	interactionPart.Name = "FashionInteraction"
 	interactionPart.Size = Vector3.new(8, 8, 8)
-	interactionPart.Position = boutique.Position + Vector3.new(0, 4, -20)
+	interactionPart.Position = boutiquePos + Vector3.new(0, 4, -20)
 	interactionPart.Anchored = true
 	interactionPart.CanCollide = false
 	interactionPart.Transparency = 0.5
@@ -107,10 +126,18 @@ function InteractionManager:CreateBuildingPrompt()
 		return
 	end
 
+	-- Get position from Model or Part
+	local platformPos
+	if platform:IsA("Model") then
+		platformPos = platform:GetPivot().Position
+	else
+		platformPos = platform.Position
+	end
+
 	local interactionPart = Instance.new("Part")
 	interactionPart.Name = "BuildingInteraction"
 	interactionPart.Size = Vector3.new(8, 8, 8)
-	interactionPart.Position = platform.Position + Vector3.new(0, 4, 30)
+	interactionPart.Position = platformPos + Vector3.new(0, 4, 30)
 	interactionPart.Anchored = true
 	interactionPart.CanCollide = false
 	interactionPart.Transparency = 0.5

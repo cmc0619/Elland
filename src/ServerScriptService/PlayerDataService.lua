@@ -185,13 +185,23 @@ end
 
 -- Initialize service
 function PlayerDataService:Init()
+	-- Check if we're in Studio (DataStore won't work without API access)
+	local RunService = game:GetService("RunService")
+	local isStudio = RunService:IsStudio()
+	
 	-- Handle player joining
 	Players.PlayerAdded:Connect(function(player)
 		local success, data = self:LoadData(player)
 
 		if not success then
-			-- Kick player if data fails to load
-			player:Kick("Failed to load player data. Please rejoin.")
+			if isStudio then
+				-- In Studio without API access, just use default data
+				warn("Studio mode: Using default data for", player.Name)
+				PlayerDataCache[player.UserId] = deepCopy(DEFAULT_DATA)
+			else
+				-- In production, kick player if data fails to load
+				player:Kick("Failed to load player data. Please rejoin.")
+			end
 		end
 	end)
 

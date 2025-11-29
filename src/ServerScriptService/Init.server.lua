@@ -25,15 +25,16 @@ PlayerDataService:Init()
 print("Initializing CurrencyManager...")
 CurrencyManager:Init(PlayerDataService)
 
+-- Build the world FIRST (creates spawn locations)
+print("Building World...")
+WorldBuilder:BuildWorld()
+
+-- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")
 ZoneManager:Init()
 
 print("Initializing WordleManager...")
 WordleManager:Init(PlayerDataService, CurrencyManager)
-
--- Build the world (auto-cleans up old world on each run)
-print("Building World...")
-WorldBuilder:BuildWorld()
 
 print("Initializing InteractionManager...")
 InteractionManager:Init()

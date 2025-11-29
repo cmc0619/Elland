@@ -55,60 +55,77 @@ function WorldBuilder:CreateRiver()
 		-- Add meandering (sine wave perpendicular to river direction)
 		local meanderOffset = math.sin(t * math.pi * 4) * 30
 		local pos = basePos + (perp * meanderOffset)
-		
-		-- Ensure Y is correct (Center at 8, so top is 9.5)
-		pos = Vector3.new(pos.X, 8, pos.Z)
 
-		-- Create water segment
-		terrain:FillBlock(
-			CFrame.new(pos),
-			Vector3.new(25, 3, 25),  -- 3 studs tall (6.5 to 9.5)
-			Enum.Material.Water
-		)
-
-		-- Carve out air above the river to ensure it's visible
-		-- Water top is at 9.5. Grass is at 10.
-		-- We need to cut BELOW 10. Let's cut down to 9 to be safe.
-		-- Air block center at 14, height 10 -> range 9 to 19
-		local airPos = Vector3.new(pos.X, 14, pos.Z)
+		-- FIRST: Carve a deeper river channel into the terrain
+		-- Ground surface is at Y=10. We want to carve down to Y=5 (5 studs deep)
+		-- Air block: center at Y=10, height 10 → carves from Y=5 to Y=15
+		local airPos = Vector3.new(pos.X, 10, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(airPos),
-			Vector3.new(25, 10, 25), -- Clear 10 studs above water
+			Vector3.new(28, 10, 28),  -- Slightly wider than water for banks
 			Enum.Material.Air
+		)
+
+		-- SECOND: Fill with water
+		-- Water should fill from Y=5 to Y=9.5 (4.5 studs deep, surface just below ground)
+		-- Center at Y=7.25, height 4.5 → Y=5 to Y=9.5
+		local waterPos = Vector3.new(pos.X, 7.25, pos.Z)
+		terrain:FillBlock(
+			CFrame.new(waterPos),
+			Vector3.new(22, 4.5, 22),  -- Narrower than air carving for natural banks
+			Enum.Material.Water
 		)
 	end
 
-	print("River created")
+	print("River created - channel carved 5 studs deep, water surface at Y=9.5")
 end
 
--- Create Ella's Lookout - the big hill
+-- Create Ella's Lookout - the big hill (FIXED: proper cone shape, not spheres)
 function WorldBuilder:CreateEllasLookout()
 	print("Creating Ella's Lookout...")
 
 	local pos = Constants.ZONES.EllasLookout.Position  -- Y=70 is the TOP of the hill
 	local terrain = Workspace.Terrain
 
-	-- Create gradual hill using layered terrain
-	-- Hill base starts at ground level (Y=10) and rises to Y=70
-	local hillBaseY = 10
-	local hillTopY = pos.Y
+	-- Hill parameters
+	local hillBaseY = 10      -- Ground level (top of base terrain)
+	local hillTopY = pos.Y    -- Top of hill (Y=70)
+	local hillHeight = hillTopY - hillBaseY  -- 60 studs tall
 	local hillCenterX = pos.X
 	local hillCenterZ = pos.Z
+	local baseRadius = 80     -- Wide base for gentle slope
 
-	-- Create hill in layers from bottom to top
-	local layers = 60 -- Increased resolution for smoother slope
+	-- Create hill using stacked cylinders (creates a cone shape)
+	-- This looks like a natural hill, not a sphere
+	local layers = 30  -- Number of cylinder layers
 	for i = 0, layers do
-		local layerY = hillBaseY + (hillTopY - hillBaseY) * (i / layers)
-		local layerRadius = 60 - (i * 0.8)  -- Shrinks slower as we go up (60 -> 12 over 60 steps)
-
-		if layerRadius > 5 then
-			terrain:FillBall(
-				Vector3.new(hillCenterX, layerY, hillCenterZ),
+		local progress = i / layers  -- 0 to 1 from bottom to top
+		
+		-- Current layer height
+		local layerY = hillBaseY + (hillHeight * progress)
+		
+		-- Radius decreases as we go up (creates cone shape)
+		-- Use a slight curve for more natural look
+		local layerRadius = baseRadius * (1 - progress * 0.85)  -- Shrinks to 15% at top
+		
+		if layerRadius > 3 then
+			-- Use FillCylinder for flat circular layers
+			terrain:FillCylinder(
+				CFrame.new(hillCenterX, layerY, hillCenterZ),
+				4,  -- Height of each cylinder layer
 				layerRadius,
 				Enum.Material.Grass
 			)
 		end
 	end
+
+	-- Add a flat top to the hill for the tree
+	terrain:FillCylinder(
+		CFrame.new(hillCenterX, hillTopY - 2, hillCenterZ),
+		4,
+		15,  -- Flat top radius
+		Enum.Material.Grass
+	)
 
 	-- Create the tree ON TOP of the hill
 	local tree = Instance.new("Model")
@@ -118,7 +135,7 @@ function WorldBuilder:CreateEllasLookout()
 	local trunk = Instance.new("Part")
 	trunk.Name = "Trunk"
 	trunk.Size = Vector3.new(3, 15, 3)
-	trunk.Position = pos + Vector3.new(0, 7, 0)  -- Trunk base at hill top
+	trunk.Position = Vector3.new(hillCenterX, hillTopY + 7.5, hillCenterZ)  -- Trunk base at hill top
 	trunk.Anchored = true
 	trunk.Material = Enum.Material.Wood
 	trunk.BrickColor = BrickColor.new("Brown")
@@ -129,7 +146,7 @@ function WorldBuilder:CreateEllasLookout()
 	foliage.Name = "Foliage"
 	foliage.Shape = Enum.PartType.Ball
 	foliage.Size = Vector3.new(20, 20, 20)
-	foliage.Position = pos + Vector3.new(0, 20, 0)  -- Above trunk
+	foliage.Position = Vector3.new(hillCenterX, hillTopY + 20, hillCenterZ)  -- Above trunk
 	foliage.Anchored = true
 	foliage.Material = Enum.Material.Grass
 	foliage.BrickColor = BrickColor.new("Dark green")
@@ -139,7 +156,7 @@ function WorldBuilder:CreateEllasLookout()
 	local branch = Instance.new("Part")
 	branch.Name = "SwingBranch"
 	branch.Size = Vector3.new(12, 1, 1)
-	branch.Position = pos + Vector3.new(5, 17, 0)  -- At foliage level
+	branch.Position = Vector3.new(hillCenterX + 5, hillTopY + 17, hillCenterZ)  -- At foliage level
 	branch.Anchored = true
 	branch.Material = Enum.Material.Wood
 	branch.BrickColor = BrickColor.new("Brown")
@@ -204,19 +221,19 @@ function WorldBuilder:CreateEllasLookout()
 
 	tree.Parent = Workspace
 
-	-- Create spawn location at base of hill
+	-- Create spawn location at base of hill (on the flat ground, not on the slope)
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "LookoutSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = Vector3.new(hillCenterX - 75, 12, hillCenterZ)  -- Moved further out to avoid being buried
+	spawn.Position = Vector3.new(hillCenterX - 100, 12, hillCenterZ)  -- Further out from hill base
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
-	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.CanCollide = true  -- IMPORTANT: Must be true so players don't fall through
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
-	print("Ella's Lookout created")
+	print("Ella's Lookout created - proper cone-shaped hill")
 end
 
 -- Create Ella's House
@@ -307,11 +324,11 @@ function WorldBuilder:CreateEllasHouse()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "HouseSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 1, -20)
+	spawn.Position = pos + Vector3.new(0, 2, -20)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Light yellow")
-	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.CanCollide = true  -- IMPORTANT: Must be true
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
@@ -393,11 +410,11 @@ function WorldBuilder:CreateWordleLibrary()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "LibrarySpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 1, -22)
+	spawn.Position = pos + Vector3.new(0, 2, -22)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Lavender")
-	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.CanCollide = true  -- IMPORTANT: Must be true
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
@@ -481,11 +498,11 @@ function WorldBuilder:CreateFashionBoutique()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "BoutiqueSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 1, -22)
+	spawn.Position = pos + Vector3.new(0, 2, -22)
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Pink")
-	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.CanCollide = true  -- IMPORTANT: Must be true
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
@@ -520,7 +537,7 @@ function WorldBuilder:CreateBuildingArea()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Sand yellow")
-	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.CanCollide = true  -- IMPORTANT: Must be true
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
@@ -583,7 +600,7 @@ function WorldBuilder:CreateHub()
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
-	spawn.CanCollide = false -- Prevent getting stuck
+	spawn.CanCollide = true  -- IMPORTANT: Must be true so players don't fall through
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
