@@ -46,7 +46,7 @@
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
         "ClientController": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts/ClientController.lua"
+          "$path": "src/StarterPlayer/StarterPlayerScripts/ClientController.client.lua"
         },
         "WordleUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/WordleUI.lua"
@@ -55,7 +55,7 @@
           "$path": "src/StarterPlayer/StarterPlayerScripts/ZoneMenuUI.lua"
         },
         "InteractionHandler": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts/InteractionHandler.lua"
+          "$path": "src/StarterPlayer/StarterPlayerScripts/InteractionHandler.client.lua"
         }
       }
     },
