@@ -2,10 +2,14 @@
 	WordleManager
 	Manages Wordle game logic, daily words, and player attempts
 	Server-authoritative word checking and scoring
+	
+	Uses external API for words: https://random-words-api.kushcreates.com/
+	NOTE: You must enable HttpService in Game Settings > Security > Allow HTTP Requests
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 
 local WordleManager = {}
 WordleManager.PlayerDataService = nil
@@ -30,6 +34,55 @@ WordleNewGame.Parent = ReplicatedStorage
 local currentDailyWord = nil
 local lastWordDate = nil
 
+-- Cache of valid words fetched from API
+local validWordsCache = {}
+local apiAvailable = false
+
+-- API Configuration
+local WORD_API_BASE = "https://random-words-api.kushcreates.com/api"
+
+-- Fetch words from API
+local function fetchWordsFromAPI(count)
+	local url = WORD_API_BASE .. "?category=wordle&length=5&type=uppercase&words=" .. tostring(count or 100)
+	
+	local success, result = pcall(function()
+		local response = HttpService:GetAsync(url)
+		return HttpService:JSONDecode(response)
+	end)
+	
+	if success and type(result) == "table" then
+		print("WordleManager: Fetched", #result, "words from API")
+		return result
+	else
+		warn("WordleManager: API fetch failed -", result)
+		return nil
+	end
+end
+
+-- Initialize word cache from API
+local function initializeWordCache()
+	print("WordleManager: Initializing word cache from API...")
+	
+	local words = fetchWordsFromAPI(500) -- Get a good selection of valid words
+	
+	if words and #words > 0 then
+		for _, word in ipairs(words) do
+			if type(word) == "string" then
+				validWordsCache[word:upper()] = true
+			end
+		end
+		apiAvailable = true
+		print("WordleManager: Loaded", #words, "words into validation cache")
+	else
+		-- Fall back to hardcoded list
+		warn("WordleManager: API unavailable, using fallback word list")
+		for _, word in ipairs(Constants.WORDLE.WORDS) do
+			validWordsCache[word:upper()] = true
+		end
+		apiAvailable = false
+	end
+end
+
 -- Get today's date string
 local function getTodayDate()
 	local now = os.time()
@@ -37,34 +90,53 @@ local function getTodayDate()
 	return string.format("%04d-%02d-%02d", date.year, date.month, date.day)
 end
 
--- Select daily word
+-- Select daily word (from API if available, otherwise fallback)
 local function selectDailyWord()
 	local today = getTodayDate()
 
 	if today ~= lastWordDate then
 		-- New day, select new word
-		local words = Constants.WORDLE.WORDS
-		local seed = 0
-
+		lastWordDate = today
+		
+		if apiAvailable then
+			-- Try to get a fresh word from API
+			local words = fetchWordsFromAPI(1)
+			if words and #words > 0 and type(words[1]) == "string" then
+				currentDailyWord = words[1]:upper()
+				-- Also add to our valid words cache
+				validWordsCache[currentDailyWord] = true
+				print("Daily Wordle word fetched from API for", today)
+				return currentDailyWord
+			end
+		end
+		
+		-- Fallback: pick from our cache or Constants
+		local wordList = {}
+		for word, _ in pairs(validWordsCache) do
+			table.insert(wordList, word)
+		end
+		
+		if #wordList == 0 then
+			wordList = Constants.WORDLE.WORDS
+		end
+		
 		-- Create deterministic seed from date
+		local seed = 0
 		for i = 1, #today do
 			seed = seed + string.byte(today, i)
 		end
-
 		math.randomseed(seed)
-		currentDailyWord = words[math.random(1, #words)]
-		lastWordDate = today
-
-		print("Daily Wordle word selected for", today)
+		
+		currentDailyWord = wordList[math.random(1, #wordList)]:upper()
+		print("Daily Wordle word selected (fallback) for", today)
 	end
 
 	return currentDailyWord
 end
 
 -- Check if a guess is valid (is it a real word?)
+-- Check if a guess is valid (is it a real word?)
 local function isValidWord(word)
-	-- Accept any 5-letter alphabetic word for now
-	-- This makes the game more fun and less frustrating
 	word = word:upper()
 	
 	-- Check it's the right length
@@ -80,6 +152,12 @@ local function isValidWord(word)
 		end
 	end
 	
+	-- If API is available, validate against our cache
+	if apiAvailable and next(validWordsCache) then
+		return validWordsCache[word] == true
+	end
+	
+	-- If API unavailable, accept any alphabetic 5-letter word
 	return true
 end
 
@@ -181,9 +259,13 @@ function WordleManager:HandleGuess(player, guess)
 	-- Check if valid word
 	if not isValidWord(guess) then
 		print("WordleManager: Invalid word -", guess)
+		local errorMsg = "Not in word list"
+		if not apiAvailable then
+			errorMsg = "Not a valid word"
+		end
 		WordleResult:FireClient(player, {
 			success = false,
-			error = "Not a valid word"
+			error = errorMsg
 		})
 		return
 	end
@@ -326,6 +408,9 @@ function WordleManager:Init(playerDataService, currencyManager)
 	self.PlayerDataService = playerDataService
 	self.CurrencyManager = currencyManager
 
+	-- Initialize word cache from API (do this first!)
+	initializeWordCache()
+	
 	-- Select initial daily word
 	selectDailyWord()
 
@@ -340,6 +425,11 @@ function WordleManager:Init(playerDataService, currencyManager)
 	end)
 
 	print("WordleManager initialized")
+	if apiAvailable then
+		print("WordleManager: Using Random Words API for word generation")
+	else
+		print("WordleManager: Using fallback word list (enable HttpService for API access)")
+	end
 end
 
 return WordleManager
