@@ -63,16 +63,24 @@ end
 
 -- Check if a guess is valid (is it a real word?)
 local function isValidWord(word)
-	-- Simple check: is it in our word list?
-	local words = Constants.WORDLE.WORDS
-
-	for _, validWord in ipairs(words) do
-		if validWord == word:upper() then
-			return true
+	-- Accept any 5-letter alphabetic word for now
+	-- This makes the game more fun and less frustrating
+	word = word:upper()
+	
+	-- Check it's the right length
+	if #word ~= Constants.WORDLE.WORD_LENGTH then
+		return false
+	end
+	
+	-- Check all characters are letters A-Z
+	for i = 1, #word do
+		local char = word:sub(i, i)
+		if char < "A" or char > "Z" then
+			return false
 		end
 	end
-
-	return false
+	
+	return true
 end
 
 -- Check guess against target word
@@ -159,7 +167,10 @@ end
 
 -- Handle player guess
 function WordleManager:HandleGuess(player, guess)
+	print("WordleManager: Received guess from", player.Name, "-", guess)
+	
 	if #guess ~= Constants.WORDLE.WORD_LENGTH then
+		print("WordleManager: Wrong length -", #guess, "vs", Constants.WORDLE.WORD_LENGTH)
 		WordleResult:FireClient(player, {
 			success = false,
 			error = "Word must be " .. Constants.WORDLE.WORD_LENGTH .. " letters"
@@ -169,12 +180,15 @@ function WordleManager:HandleGuess(player, guess)
 
 	-- Check if valid word
 	if not isValidWord(guess) then
+		print("WordleManager: Invalid word -", guess)
 		WordleResult:FireClient(player, {
 			success = false,
 			error = "Not a valid word"
 		})
 		return
 	end
+	
+	print("WordleManager: Valid guess, processing...")
 
 	local progress = self:GetPlayerProgress(player)
 	local today = getTodayDate()

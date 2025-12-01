@@ -222,6 +222,8 @@ end
 
 -- Handle key press
 function WordleUI:HandleKeyPress(key)
+	print("WordleUI:HandleKeyPress():", key)
+	
 	if key == "ENTER" then
 		self:SubmitGuess()
 	elseif key == "⌫" then
@@ -255,20 +257,30 @@ end
 
 -- Submit guess
 function WordleUI:SubmitGuess()
+	print("WordleUI:SubmitGuess() called with:", self.CurrentGuess, "length:", #self.CurrentGuess)
+	
 	if #self.CurrentGuess ~= Constants.WORDLE.WORD_LENGTH then
+		print("WordleUI: Not enough letters, need", Constants.WORDLE.WORD_LENGTH)
+		self:ShowMessage("Not enough letters!", Color3.fromRGB(237, 66, 69))
 		return
 	end
 
+	print("WordleUI: Firing guess to server:", self.CurrentGuess)
 	WordleGuess:FireServer(self.CurrentGuess)
 end
 
 -- Handle result from server
 function WordleUI:HandleResult(data)
+	print("WordleUI: Received result from server", data.success)
+	
 	if not data.success then
-		-- Show error
-		warn(data.error)
+		-- Show error visually
+		warn("WordleUI error:", data.error)
+		self:ShowMessage(data.error or "Unknown error", Color3.fromRGB(237, 66, 69))
 		return
 	end
+	
+	print("WordleUI: Processing successful result")
 
 	-- Animate the result
 	for col, letterData in ipairs(data.result) do
