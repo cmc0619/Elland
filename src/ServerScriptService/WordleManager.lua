@@ -330,8 +330,12 @@ function WordleManager:HandleGuess(player, guess)
 		progress.MaxStreak = math.max(progress.MaxStreak, progress.CurrentStreak)
 
 		-- Award currency
+		print("WordleManager: Player won! Awarding", Constants.WORDLE.DAILY_REWARD, "coins")
 		if self.CurrencyManager then
-			self.CurrencyManager:AddCurrency(player, Constants.WORDLE.DAILY_REWARD, "Wordle Daily Complete")
+			local success = self.CurrencyManager:AddCurrency(player, Constants.WORDLE.DAILY_REWARD, "Wordle Daily Complete")
+			print("WordleManager: Currency award success:", success)
+		else
+			warn("WordleManager: CurrencyManager is nil! Cannot award coins!")
 		end
 
 		WordleResult:FireClient(player, {

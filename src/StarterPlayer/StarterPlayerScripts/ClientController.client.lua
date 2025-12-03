@@ -48,9 +48,11 @@ end
 
 -- Handle currency updates from server
 local function onCurrencyChanged(newAmount, change)
+	print("ClientController: Currency changed! New amount:", newAmount, "Change:", change)
 	ClientController.Currency = newAmount
 
 	if change > 0 then
+		print("ClientController: Showing gain animation for", change)
 		ClientController:ShowCurrencyGain(change)
 	elseif change < 0 then
 		ClientController:ShowCurrencyLoss(math.abs(change))
@@ -231,8 +233,12 @@ end
 
 -- Update currency display
 function ClientController:UpdateCurrencyDisplay()
+	print("ClientController:UpdateCurrencyDisplay called, currency:", self.Currency, "label exists:", self.CurrencyLabel ~= nil)
 	if self.CurrencyLabel then
 		self.CurrencyLabel.Text = "💰 " .. tostring(self.Currency) .. " Coins"
+		print("ClientController: Updated label to:", self.CurrencyLabel.Text)
+	else
+		warn("ClientController: CurrencyLabel is nil!")
 	end
 end
 

@@ -60,19 +60,21 @@ end
 
 -- Add currency to player
 function CurrencyManager:AddCurrency(player, amount, reason)
+	print("CurrencyManager:AddCurrency called for", player.Name, "amount:", amount, "reason:", reason)
+	
 	if not self.PlayerDataService then
-		warn("PlayerDataService not initialized")
+		warn("CurrencyManager: PlayerDataService not initialized!")
 		return false
 	end
 
 	if amount <= 0 then
-		warn("Cannot add non-positive currency amount:", amount)
+		warn("CurrencyManager: Cannot add non-positive currency amount:", amount)
 		return false
 	end
 
 	local data = self.PlayerDataService:GetData(player)
 	if not data then
-		warn("No data found for", player.Name)
+		warn("CurrencyManager: No data found for", player.Name)
 		return false
 	end
 
@@ -81,10 +83,10 @@ function CurrencyManager:AddCurrency(player, amount, reason)
 
 	self.PlayerDataService:UpdateData(player, "Currency", newAmount)
 
-	print(player.Name, "earned", amount, "currency.", "Reason:", reason or "Unknown")
-	print(player.Name, "total currency:", newAmount)
+	print("CurrencyManager:", player.Name, "earned", amount, "coins. Total:", newAmount)
 
 	-- Notify client
+	print("CurrencyManager: Firing CurrencyChanged to client")
 	CurrencyChanged:FireClient(player, newAmount, amount)
 
 	return true
@@ -182,11 +184,23 @@ function CurrencyManager:Init(playerDataService)
 
 	-- Notify players of their currency on join
 	Players.PlayerAdded:Connect(function(player)
-		-- Wait for data to load
-		wait(1)
+		print("CurrencyManager: Player joined, waiting for client to be ready...")
+		-- Wait longer for client scripts to initialize
+		task.wait(3)
 		local currency = self:GetCurrency(player)
+		print("CurrencyManager: Sending initial currency to", player.Name, ":", currency)
 		CurrencyChanged:FireClient(player, currency, 0)
 	end)
+	
+	-- Also handle players already in game (for Studio testing)
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			task.wait(1)
+			local currency = self:GetCurrency(player)
+			print("CurrencyManager: Sending initial currency to existing player", player.Name, ":", currency)
+			CurrencyChanged:FireClient(player, currency, 0)
+		end)
+	end
 
 	print("CurrencyManager initialized")
 end
