@@ -67,17 +67,17 @@ function WorldBuilder:CreateRiver()
 		)
 
 		-- SECOND: Fill with water
-		-- Water should fill from Y=5 to Y=9.5 (4.5 studs deep, surface just below ground)
-		-- Center at Y=7.25, height 4.5 → Y=5 to Y=9.5
-		local waterPos = Vector3.new(pos.X, 7.25, pos.Z)
+		-- Water should fill from Y=5 to Y=9.8 (4.8 studs deep, surface almost at ground level)
+		-- Center at Y=7.4, height 4.8 → Y=5 to Y=9.8
+		local waterPos = Vector3.new(pos.X, 7.4, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(waterPos),
-			Vector3.new(22, 4.5, 22),  -- Narrower than air carving for natural banks
+			Vector3.new(22, 4.8, 22),  -- Narrower than air carving for natural banks
 			Enum.Material.Water
 		)
 	end
 
-	print("River created - channel carved 5 studs deep, water surface at Y=9.5")
+	print("River created - channel carved 5 studs deep, water surface at Y=9.8")
 end
 
 -- Create Ella's Lookout - the big hill (FIXED: proper cone shape, not spheres)
@@ -183,7 +183,10 @@ function WorldBuilder:CreateEllasLookout()
 	local seat = Instance.new("Seat")
 	seat.Name = "SwingSeat"
 	seat.Size = Vector3.new(4, 0.5, 2)
-	seat.Position = branch.Position + Vector3.new(10, -8, 0)  -- Moved 10 studs away from hill
+	-- Use CFrame to set position AND rotation
+	-- Rotate 90 degrees on Y axis so player faces outward from the hill
+	local seatPos = branch.Position + Vector3.new(10, -8, 0)
+	seat.CFrame = CFrame.new(seatPos) * CFrame.Angles(0, math.rad(90), 0)
 	seat.Anchored = false
 	seat.BrickColor = BrickColor.new("Medium brown")
 	seat.Parent = tree
@@ -260,13 +263,31 @@ function WorldBuilder:CreateEllasHouse()
 
 	local wallY = groundLevel + baseHeight + 6  -- Y=10 + 1 + 6 = 17
 
-	-- Walls
-	local wall1 = Instance.new("Part")
-	wall1.Size = Vector3.new(30, 12, 1)
-	wall1.Position = Vector3.new(pos.X, wallY, pos.Z - 12)
-	wall1.Anchored = true
-	wall1.BrickColor = BrickColor.new("Light yellow")
-	wall1.Parent = house
+	-- Front wall with door opening (split into two parts)
+	local wall1Left = Instance.new("Part")
+	wall1Left.Name = "FrontWallLeft"
+	wall1Left.Size = Vector3.new(11, 12, 1)
+	wall1Left.Position = Vector3.new(pos.X - 9.5, wallY, pos.Z - 12)
+	wall1Left.Anchored = true
+	wall1Left.BrickColor = BrickColor.new("Light yellow")
+	wall1Left.Parent = house
+	
+	local wall1Right = Instance.new("Part")
+	wall1Right.Name = "FrontWallRight"
+	wall1Right.Size = Vector3.new(11, 12, 1)
+	wall1Right.Position = Vector3.new(pos.X + 9.5, wallY, pos.Z - 12)
+	wall1Right.Anchored = true
+	wall1Right.BrickColor = BrickColor.new("Light yellow")
+	wall1Right.Parent = house
+	
+	-- Top of door frame
+	local doorFrame = Instance.new("Part")
+	doorFrame.Name = "DoorFrame"
+	doorFrame.Size = Vector3.new(8, 4, 1)
+	doorFrame.Position = Vector3.new(pos.X, wallY + 4, pos.Z - 12)
+	doorFrame.Anchored = true
+	doorFrame.BrickColor = BrickColor.new("Light yellow")
+	doorFrame.Parent = house
 
 	local wall2 = Instance.new("Part")
 	wall2.Size = Vector3.new(30, 12, 1)
@@ -356,11 +377,34 @@ function WorldBuilder:CreateWordleLibrary()
 	base.BrickColor = BrickColor.new("Dark stone grey")
 	base.Parent = library
 
-	-- Walls
+	-- Walls with door opening on front
 	local wallY = groundLevel + baseHeight + 7 -- Base + half wall height (14/2)
 	
+	-- Front wall with door opening (split)
+	local frontWallLeft = Instance.new("Part")
+	frontWallLeft.Size = Vector3.new(12, 14, 1)
+	frontWallLeft.Position = Vector3.new(pos.X - 11.5, wallY, pos.Z - 15)
+	frontWallLeft.Anchored = true
+	frontWallLeft.BrickColor = BrickColor.new("Lavender")
+	frontWallLeft.Parent = library
+	
+	local frontWallRight = Instance.new("Part")
+	frontWallRight.Size = Vector3.new(12, 14, 1)
+	frontWallRight.Position = Vector3.new(pos.X + 11.5, wallY, pos.Z - 15)
+	frontWallRight.Anchored = true
+	frontWallRight.BrickColor = BrickColor.new("Lavender")
+	frontWallRight.Parent = library
+	
+	-- Door frame top
+	local doorFrameTop = Instance.new("Part")
+	doorFrameTop.Size = Vector3.new(11, 4, 1)
+	doorFrameTop.Position = Vector3.new(pos.X, wallY + 5, pos.Z - 15)
+	doorFrameTop.Anchored = true
+	doorFrameTop.BrickColor = BrickColor.new("Lavender")
+	doorFrameTop.Parent = library
+	
+	-- Other walls (back, left, right)
 	for i, wallData in ipairs({
-		{Vector3.new(0, 0, -15), Vector3.new(35, 14, 1)},
 		{Vector3.new(0, 0, 15), Vector3.new(35, 14, 1)},
 		{Vector3.new(-17.5, 0, 0), Vector3.new(1, 14, 30)},
 		{Vector3.new(17.5, 0, 0), Vector3.new(1, 14, 30)},
@@ -442,11 +486,40 @@ function WorldBuilder:CreateFashionBoutique()
 	base.BrickColor = BrickColor.new("Dark stone grey")
 	base.Parent = boutique
 
-	-- Walls with glass
+	-- Walls with glass - front has door opening
 	local wallY = groundLevel + baseHeight + 7 -- Base + half wall height (14/2)
 
+	-- Front wall with door opening (split)
+	local frontWallLeft = Instance.new("Part")
+	frontWallLeft.Size = Vector3.new(10, 14, 1)
+	frontWallLeft.Position = Vector3.new(pos.X - 10, wallY, pos.Z - 15)
+	frontWallLeft.Anchored = true
+	frontWallLeft.Material = Enum.Material.Glass
+	frontWallLeft.Transparency = 0.3
+	frontWallLeft.BrickColor = BrickColor.new("Pink")
+	frontWallLeft.Parent = boutique
+	
+	local frontWallRight = Instance.new("Part")
+	frontWallRight.Size = Vector3.new(10, 14, 1)
+	frontWallRight.Position = Vector3.new(pos.X + 10, wallY, pos.Z - 15)
+	frontWallRight.Anchored = true
+	frontWallRight.Material = Enum.Material.Glass
+	frontWallRight.Transparency = 0.3
+	frontWallRight.BrickColor = BrickColor.new("Pink")
+	frontWallRight.Parent = boutique
+	
+	-- Door frame top
+	local doorFrameTop = Instance.new("Part")
+	doorFrameTop.Size = Vector3.new(10, 4, 1)
+	doorFrameTop.Position = Vector3.new(pos.X, wallY + 5, pos.Z - 15)
+	doorFrameTop.Anchored = true
+	doorFrameTop.Material = Enum.Material.Glass
+	doorFrameTop.Transparency = 0.3
+	doorFrameTop.BrickColor = BrickColor.new("Pink")
+	doorFrameTop.Parent = boutique
+	
+	-- Other walls (back, left, right)
 	for i, wallData in ipairs({
-		{Vector3.new(0, 0, -15), Vector3.new(30, 14, 1)},
 		{Vector3.new(0, 0, 15), Vector3.new(30, 14, 1)},
 		{Vector3.new(-15, 0, 0), Vector3.new(1, 14, 30)},
 		{Vector3.new(15, 0, 0), Vector3.new(1, 14, 30)},

@@ -54,7 +54,7 @@ function WordleUI:CreateUI()
 	-- Main container
 	local container = Instance.new("Frame")
 	container.Name = "Container"
-	container.Size = UDim2.new(0, 500, 0, 700)
+	container.Size = UDim2.new(0, 400, 0, 560)  -- Smaller size
 	container.Position = UDim2.new(0.5, 0, 0.5, 0)
 	container.AnchorPoint = Vector2.new(0.5, 0.5)
 	container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -68,11 +68,11 @@ function WordleUI:CreateUI()
 	-- Title
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
-	title.Size = UDim2.new(1, -40, 0, 60)
-	title.Position = UDim2.new(0, 20, 0, 10)
+	title.Size = UDim2.new(1, -40, 0, 45)
+	title.Position = UDim2.new(0, 20, 0, 8)
 	title.BackgroundTransparency = 1
 	title.Text = "WORDLE"
-	title.TextSize = 32
+	title.TextSize = 26
 	title.Font = Enum.Font.GothamBold
 	title.TextColor3 = Color3.fromRGB(50, 50, 50)
 	title.TextXAlignment = Enum.TextXAlignment.Center
@@ -81,11 +81,11 @@ function WordleUI:CreateUI()
 	-- Close button
 	local closeButton = Instance.new("TextButton")
 	closeButton.Name = "CloseButton"
-	closeButton.Size = UDim2.new(0, 40, 0, 40)
-	closeButton.Position = UDim2.new(1, -50, 0, 15)
+	closeButton.Size = UDim2.new(0, 32, 0, 32)
+	closeButton.Position = UDim2.new(1, -42, 0, 12)
 	closeButton.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
 	closeButton.Text = "✕"
-	closeButton.TextSize = 24
+	closeButton.TextSize = 20
 	closeButton.Font = Enum.Font.GothamBold
 	closeButton.TextColor3 = Color3.fromRGB(50, 50, 50)
 	closeButton.Parent = container
@@ -101,8 +101,8 @@ function WordleUI:CreateUI()
 	-- Stats display
 	local statsFrame = Instance.new("Frame")
 	statsFrame.Name = "StatsFrame"
-	statsFrame.Size = UDim2.new(1, -40, 0, 40)
-	statsFrame.Position = UDim2.new(0, 20, 0, 70)
+	statsFrame.Size = UDim2.new(1, -32, 0, 30)
+	statsFrame.Position = UDim2.new(0, 16, 0, 52)
 	statsFrame.BackgroundTransparency = 1
 	statsFrame.Parent = container
 
@@ -111,7 +111,7 @@ function WordleUI:CreateUI()
 	statsText.Size = UDim2.new(1, 0, 1, 0)
 	statsText.BackgroundTransparency = 1
 	statsText.Text = "Loading..."
-	statsText.TextSize = 14
+	statsText.TextSize = 12
 	statsText.Font = Enum.Font.Gotham
 	statsText.TextColor3 = Color3.fromRGB(100, 100, 100)
 	statsText.TextXAlignment = Enum.TextXAlignment.Center
@@ -120,8 +120,8 @@ function WordleUI:CreateUI()
 	-- Grid for guesses
 	local gridFrame = Instance.new("Frame")
 	gridFrame.Name = "GridFrame"
-	gridFrame.Size = UDim2.new(0, 350, 0, 380)
-	gridFrame.Position = UDim2.new(0.5, 0, 0, 120)
+	gridFrame.Size = UDim2.new(0, 270, 0, 300)
+	gridFrame.Position = UDim2.new(0.5, 0, 0, 88)
 	gridFrame.AnchorPoint = Vector2.new(0.5, 0)
 	gridFrame.BackgroundTransparency = 1
 	gridFrame.Parent = container
@@ -131,8 +131,8 @@ function WordleUI:CreateUI()
 		for col = 1, Constants.WORDLE.WORD_LENGTH do
 			local box = Instance.new("Frame")
 			box.Name = "Box_" .. row .. "_" .. col
-			box.Size = UDim2.new(0, 62, 0, 62)
-			box.Position = UDim2.new(0, (col - 1) * 70, 0, (row - 1) * 70)
+			box.Size = UDim2.new(0, 48, 0, 48)
+			box.Position = UDim2.new(0, (col - 1) * 54, 0, (row - 1) * 54)
 			box.BackgroundColor3 = COLORS.EMPTY
 			box.BorderSizePixel = 2
 			box.BorderColor3 = Color3.fromRGB(180, 180, 180)
@@ -147,7 +147,7 @@ function WordleUI:CreateUI()
 			letter.Size = UDim2.new(1, 0, 1, 0)
 			letter.BackgroundTransparency = 1
 			letter.Text = ""
-			letter.TextSize = 32
+			letter.TextSize = 26
 			letter.Font = Enum.Font.GothamBold
 			letter.TextColor3 = Color3.fromRGB(50, 50, 50)
 			letter.Parent = box
@@ -162,8 +162,8 @@ function WordleUI:CreateUI()
 	-- Keyboard
 	local keyboardFrame = Instance.new("Frame")
 	keyboardFrame.Name = "KeyboardFrame"
-	keyboardFrame.Size = UDim2.new(0, 460, 0, 180)
-	keyboardFrame.Position = UDim2.new(0.5, 0, 1, -190)
+	keyboardFrame.Size = UDim2.new(0, 380, 0, 150)
+	keyboardFrame.Position = UDim2.new(0.5, 0, 1, -160)
 	keyboardFrame.AnchorPoint = Vector2.new(0.5, 0)
 	keyboardFrame.BackgroundTransparency = 1
 	keyboardFrame.Parent = container
@@ -175,28 +175,28 @@ function WordleUI:CreateUI()
 	}
 
 	for rowIndex, keys in ipairs(keyboardLayout) do
-		local rowOffset = (rowIndex - 1) * 15
+		local rowOffset = (rowIndex - 1) * 12
 		for keyIndex, key in ipairs(keys) do
-			local keyWidth = 40
-			local keyX = (keyIndex - 1) * 44
+			local keyWidth = 32
+			local keyX = (keyIndex - 1) * 36
 
 			if key == "ENTER" or key == "⌫" then
-				keyWidth = 60
+				keyWidth = 50
 			end
 
 			if rowIndex == 2 then
-				keyX = keyX + 22
+				keyX = keyX + 18
 			elseif rowIndex == 3 and keyIndex > 1 then
-				keyX = keyX + 60
+				keyX = keyX + 50
 			end
 
 			local keyButton = Instance.new("TextButton")
 			keyButton.Name = "Key_" .. key
-			keyButton.Size = UDim2.new(0, keyWidth, 0, 52)
-			keyButton.Position = UDim2.new(0, keyX, 0, rowIndex * 56)
+			keyButton.Size = UDim2.new(0, keyWidth, 0, 42)
+			keyButton.Position = UDim2.new(0, keyX, 0, rowIndex * 46)
 			keyButton.BackgroundColor3 = Color3.fromRGB(211, 214, 218)
 			keyButton.Text = key
-			keyButton.TextSize = key == "ENTER" and 12 or 20
+			keyButton.TextSize = key == "ENTER" and 10 or 16
 			keyButton.Font = Enum.Font.GothamBold
 			keyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 			keyButton.Parent = keyboardFrame
