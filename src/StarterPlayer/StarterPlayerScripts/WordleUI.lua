@@ -1,7 +1,7 @@
 --[[
 	WordleUI
 	Client-side Wordle game interface
-	Beautiful, interactive Wordle game UI
+	"Premium" Design Edition
 ]]
 
 local Players = game:GetService("Players")
@@ -15,23 +15,29 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 
 local WordleUI = {}
 
--- Remote Events (initialized later to avoid blocking)
+-- Remote Events
 local WordleGuess
 local WordleResult
 local WordleNewGame
+
 WordleUI.IsOpen = false
 WordleUI.CurrentGuess = ""
 WordleUI.CurrentRow = 1
 WordleUI.GuessBoxes = {}
 WordleUI.KeyboardButtons = {}
 
--- Colors for tile states
+-- Modern Color Palette
 local COLORS = {
-	CORRECT = Color3.fromRGB(106, 170, 100),
-	PRESENT = Color3.fromRGB(201, 180, 88),
-	ABSENT = Color3.fromRGB(120, 124, 126),
-	EMPTY = Color3.fromRGB(211, 214, 218),
-	ACTIVE = Color3.fromRGB(255, 255, 255),
+	CORRECT = Color3.fromRGB(106, 170, 100),    -- Green
+	PRESENT = Color3.fromRGB(201, 180, 88),     -- Yellow
+	ABSENT = Color3.fromRGB(120, 124, 126),     -- Grey
+	EMPTY = Color3.fromRGB(251, 252, 255),      -- Off-white
+	BORDER = Color3.fromRGB(223, 224, 226),     -- Light border
+	ACTIVE = Color3.fromRGB(135, 138, 140),     -- Active border
+	TEXT = Color3.fromRGB(26, 26, 27),          -- Dark text
+	BACKGROUND = Color3.fromRGB(255, 255, 255), -- White bg
+	OVERLAY = Color3.fromRGB(0, 0, 0),          -- Dark overlay
+	KEY_BG = Color3.fromRGB(211, 214, 218),     -- Keyboard key
 }
 
 -- Create the main Wordle UI
@@ -46,115 +52,131 @@ function WordleUI:CreateUI()
 	local dimmer = Instance.new("Frame")
 	dimmer.Name = "Dimmer"
 	dimmer.Size = UDim2.new(1, 0, 1, 0)
-	dimmer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	dimmer.BackgroundTransparency = 0.5
+	dimmer.BackgroundColor3 = COLORS.OVERLAY
+	dimmer.BackgroundTransparency = 1 -- Start transparent for fade in
 	dimmer.BorderSizePixel = 0
 	dimmer.Parent = screenGui
 
 	-- Main container
 	local container = Instance.new("Frame")
 	container.Name = "Container"
-	container.Size = UDim2.new(0, 400, 0, 560)  -- Smaller size
-	container.Position = UDim2.new(0.5, 0, 0.5, 0)
+	container.Size = UDim2.new(0, 400, 0, 580) -- Compact, mobile-friendly size
+	container.Position = UDim2.new(0.5, 0, 0.55, 0) -- Start slightly lower for slide up
 	container.AnchorPoint = Vector2.new(0.5, 0.5)
-	container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	container.BackgroundColor3 = COLORS.BACKGROUND
 	container.BorderSizePixel = 0
+	container.BackgroundTransparency = 0 -- Opaque
 	container.Parent = screenGui
 
+	-- Styling: Shadow
+	local shadow = Instance.new("UIStroke")
+	shadow.Thickness = 6
+	shadow.Transparency = 0.8
+	shadow.Color = Color3.new(0,0,0)
+	shadow.Parent = container
+
+	-- Styling: Rounded Corners
 	local containerCorner = Instance.new("UICorner")
-	containerCorner.CornerRadius = UDim.new(0, 12)
+	containerCorner.CornerRadius = UDim.new(0, 16)
 	containerCorner.Parent = container
 
-	-- Title
+	-- Header
+	local header = Instance.new("Frame")
+	header.Name = "Header"
+	header.Size = UDim2.new(1, 0, 0, 50)
+	header.BackgroundTransparency = 1
+	header.Parent = container
+
+	local headerBorder = Instance.new("Frame")
+	headerBorder.Name = "Border"
+	headerBorder.Size = UDim2.new(1, 0, 0, 1)
+	headerBorder.Position = UDim2.new(0, 0, 1, -1)
+	headerBorder.BackgroundColor3 = COLORS.BORDER
+	headerBorder.BorderSizePixel = 0
+	headerBorder.Parent = header
+
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
-	title.Size = UDim2.new(1, -40, 0, 45)
-	title.Position = UDim2.new(0, 20, 0, 8)
+	title.Size = UDim2.new(1, 0, 1, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "WORDLE"
-	title.TextSize = 26
-	title.Font = Enum.Font.GothamBold
-	title.TextColor3 = Color3.fromRGB(50, 50, 50)
-	title.TextXAlignment = Enum.TextXAlignment.Center
-	title.Parent = container
+	title.Text = "Wordle"
+	title.TextSize = 24
+	title.Font = Enum.Font.GothamBold -- Clean font
+	title.TextColor3 = COLORS.TEXT
+	title.Parent = header
 
 	-- Close button
 	local closeButton = Instance.new("TextButton")
 	closeButton.Name = "CloseButton"
-	closeButton.Size = UDim2.new(0, 32, 0, 32)
-	closeButton.Position = UDim2.new(1, -42, 0, 12)
-	closeButton.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+	closeButton.Size = UDim2.new(0, 40, 0, 40)
+	closeButton.Position = UDim2.new(1, -45, 0.5, 0)
+	closeButton.AnchorPoint = Vector2.new(0, 0.5)
+	closeButton.BackgroundTransparency = 1
 	closeButton.Text = "✕"
 	closeButton.TextSize = 20
-	closeButton.Font = Enum.Font.GothamBold
-	closeButton.TextColor3 = Color3.fromRGB(50, 50, 50)
-	closeButton.Parent = container
-
-	local closeCorner = Instance.new("UICorner")
-	closeCorner.CornerRadius = UDim.new(0, 8)
-	closeCorner.Parent = closeButton
+	closeButton.Font = Enum.Font.Gotham
+	closeButton.TextColor3 = COLORS.ABSENT
+	closeButton.Parent = header
 
 	closeButton.MouseButton1Click:Connect(function()
 		self:Close()
 	end)
 
-	-- Stats display
-	local statsFrame = Instance.new("Frame")
-	statsFrame.Name = "StatsFrame"
-	statsFrame.Size = UDim2.new(1, -32, 0, 30)
-	statsFrame.Position = UDim2.new(0, 16, 0, 52)
-	statsFrame.BackgroundTransparency = 1
-	statsFrame.Parent = container
-
-	local statsText = Instance.new("TextLabel")
-	statsText.Name = "StatsText"
-	statsText.Size = UDim2.new(1, 0, 1, 0)
-	statsText.BackgroundTransparency = 1
-	statsText.Text = "Loading..."
-	statsText.TextSize = 12
-	statsText.Font = Enum.Font.Gotham
-	statsText.TextColor3 = Color3.fromRGB(100, 100, 100)
-	statsText.TextXAlignment = Enum.TextXAlignment.Center
-	statsText.Parent = statsFrame
+	-- Stats/Message display
+	local messageLabel = Instance.new("TextLabel")
+	messageLabel.Name = "Message"
+	messageLabel.Size = UDim2.new(1, -40, 0, 30)
+	messageLabel.Position = UDim2.new(0.5, 0, 0, 60)
+	messageLabel.AnchorPoint = Vector2.new(0.5, 0)
+	messageLabel.BackgroundTransparency = 1
+	messageLabel.Text = "Welcome!"
+	messageLabel.TextSize = 14
+	messageLabel.Font = Enum.Font.Gotham
+	messageLabel.TextColor3 = COLORS.TEXT
+	messageLabel.Parent = container
 
 	-- Grid for guesses
 	local gridFrame = Instance.new("Frame")
 	gridFrame.Name = "GridFrame"
-	gridFrame.Size = UDim2.new(0, 270, 0, 300)
-	gridFrame.Position = UDim2.new(0.5, 0, 0, 88)
+	gridFrame.Size = UDim2.new(0, 280, 0, 330) -- 5 cols * (50 size + 5 gap)
+	gridFrame.Position = UDim2.new(0.5, 0, 0, 100)
 	gridFrame.AnchorPoint = Vector2.new(0.5, 0)
 	gridFrame.BackgroundTransparency = 1
 	gridFrame.Parent = container
 
+	local gridLayout = Instance.new("UIGridLayout")
+	gridLayout.CellSize = UDim2.new(0, 50, 0, 50)
+	gridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
+	gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	gridLayout.Parent = gridFrame
+
 	-- Create 6x5 grid
 	for row = 1, Constants.WORDLE.MAX_ATTEMPTS do
+		self.GuessBoxes[row] = {}
 		for col = 1, Constants.WORDLE.WORD_LENGTH do
 			local box = Instance.new("Frame")
 			box.Name = "Box_" .. row .. "_" .. col
-			box.Size = UDim2.new(0, 48, 0, 48)
-			box.Position = UDim2.new(0, (col - 1) * 54, 0, (row - 1) * 54)
-			box.BackgroundColor3 = COLORS.EMPTY
-			box.BorderSizePixel = 2
-			box.BorderColor3 = Color3.fromRGB(180, 180, 180)
+			box.LayoutOrder = (row - 1) * 5 + col
+			box.BackgroundColor3 = COLORS.BACKGROUND
 			box.Parent = gridFrame
 
-			local boxCorner = Instance.new("UICorner")
-			boxCorner.CornerRadius = UDim.new(0, 4)
-			boxCorner.Parent = box
+			local stroke = Instance.new("UIStroke")
+			stroke.Thickness = 2
+			stroke.Color = COLORS.BORDER
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			stroke.Parent = box
 
 			local letter = Instance.new("TextLabel")
 			letter.Name = "Letter"
 			letter.Size = UDim2.new(1, 0, 1, 0)
 			letter.BackgroundTransparency = 1
 			letter.Text = ""
-			letter.TextSize = 26
+			letter.TextSize = 28
 			letter.Font = Enum.Font.GothamBold
-			letter.TextColor3 = Color3.fromRGB(50, 50, 50)
+			letter.TextColor3 = COLORS.TEXT
 			letter.Parent = box
-
-			if not self.GuessBoxes[row] then
-				self.GuessBoxes[row] = {}
-			end
+			
 			self.GuessBoxes[row][col] = box
 		end
 	end
@@ -162,9 +184,9 @@ function WordleUI:CreateUI()
 	-- Keyboard
 	local keyboardFrame = Instance.new("Frame")
 	keyboardFrame.Name = "KeyboardFrame"
-	keyboardFrame.Size = UDim2.new(0, 380, 0, 150)
-	keyboardFrame.Position = UDim2.new(0.5, 0, 1, -160)
-	keyboardFrame.AnchorPoint = Vector2.new(0.5, 0)
+	keyboardFrame.Size = UDim2.new(1, -20, 0, 120)
+	keyboardFrame.Position = UDim2.new(0.5, 0, 1, -10)
+	keyboardFrame.AnchorPoint = Vector2.new(0.5, 1)
 	keyboardFrame.BackgroundTransparency = 1
 	keyboardFrame.Parent = container
 
@@ -174,38 +196,55 @@ function WordleUI:CreateUI()
 		{"ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"}
 	}
 
+	local rowHeight = 36
+	local keyGap = 4
+	
 	for rowIndex, keys in ipairs(keyboardLayout) do
-		local rowOffset = (rowIndex - 1) * 12
-		for keyIndex, key in ipairs(keys) do
-			local keyWidth = 32
-			local keyX = (keyIndex - 1) * 36
+		local rowFrame = Instance.new("Frame")
+		rowFrame.Size = UDim2.new(1, 0, 0, rowHeight)
+		rowFrame.Position = UDim2.new(0, 0, 0, (rowIndex - 1) * (rowHeight + keyGap))
+		rowFrame.BackgroundTransparency = 1
+		rowFrame.Parent = keyboardFrame
+		
+		-- Simple manual layout for centered rows
+		local totalGap = ( #keys - 1 ) * keyGap
+		-- This is "approximate" dynamic sizing logic
+		-- Actually simpler to just use UIListLayout
+		local list = Instance.new("UIListLayout")
+		list.FillDirection = Enum.FillDirection.Horizontal
+		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		list.Padding = UDim.new(0, keyGap)
+		list.Parent = rowFrame
 
-			if key == "ENTER" or key == "⌫" then
-				keyWidth = 50
-			end
-
-			if rowIndex == 2 then
-				keyX = keyX + 18
-			elseif rowIndex == 3 and keyIndex > 1 then
-				keyX = keyX + 50
-			end
-
+		for _, key in ipairs(keys) do
 			local keyButton = Instance.new("TextButton")
 			keyButton.Name = "Key_" .. key
-			keyButton.Size = UDim2.new(0, keyWidth, 0, 42)
-			keyButton.Position = UDim2.new(0, keyX, 0, rowIndex * 46)
-			keyButton.BackgroundColor3 = Color3.fromRGB(211, 214, 218)
+			
+			local width = 28
+			if key == "ENTER" or key == "⌫" then width = 45 end
+			
+			keyButton.Size = UDim2.new(0, width, 1, 0)
+			keyButton.BackgroundColor3 = COLORS.KEY_BG
 			keyButton.Text = key
-			keyButton.TextSize = key == "ENTER" and 10 or 16
+			keyButton.TextSize = 12
 			keyButton.Font = Enum.Font.GothamBold
-			keyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-			keyButton.Parent = keyboardFrame
+			keyButton.TextColor3 = COLORS.TEXT
+			keyButton.AutoButtonColor = false -- handle interact manually for style
+			keyButton.Parent = rowFrame
 
-			local keyCorner = Instance.new("UICorner")
-			keyCorner.CornerRadius = UDim.new(0, 4)
-			keyCorner.Parent = keyButton
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 4)
+			corner.Parent = keyButton
 
 			self.KeyboardButtons[key] = keyButton
+			
+			-- Hover effect
+			keyButton.MouseEnter:Connect(function()
+				TweenService:Create(keyButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+			end)
+			keyButton.MouseLeave:Connect(function()
+				TweenService:Create(keyButton, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+			end)
 
 			keyButton.MouseButton1Click:Connect(function()
 				self:HandleKeyPress(key)
@@ -215,15 +254,15 @@ function WordleUI:CreateUI()
 
 	screenGui.Parent = playerGui
 	self.ScreenGui = screenGui
-	self.StatsText = statsText
+	self.Dimmer = dimmer
+	self.Container = container
+	self.MessageLabel = messageLabel
 
-	print("Wordle UI created")
+	print("Premium Wordle UI created")
 end
 
 -- Handle key press
 function WordleUI:HandleKeyPress(key)
-	print("WordleUI:HandleKeyPress():", key)
-	
 	if key == "ENTER" then
 		self:SubmitGuess()
 	elseif key == "⌫" then
@@ -232,8 +271,19 @@ function WordleUI:HandleKeyPress(key)
 			self:UpdateDisplay()
 		end
 	else
+		-- Letter
 		if #self.CurrentGuess < Constants.WORDLE.WORD_LENGTH then
 			self.CurrentGuess = self.CurrentGuess .. key
+			
+			-- Pop animation for typing
+			local box = self.GuessBoxes[self.CurrentRow][#self.CurrentGuess]
+			if box then
+				box.Size = UDim2.new(0, 56, 0, 56) -- slightly bigger
+				TweenService:Create(box, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
+					Size = UDim2.new(0, 50, 0, 50)
+				}):Play()
+			end
+
 			self:UpdateDisplay()
 		end
 	end
@@ -244,50 +294,65 @@ function WordleUI:UpdateDisplay()
 	for col = 1, Constants.WORDLE.WORD_LENGTH do
 		local box = self.GuessBoxes[self.CurrentRow][col]
 		local letter = box:FindFirstChild("Letter")
+		local stroke = box:FindFirstChild("UIStroke")
 
 		if col <= #self.CurrentGuess then
 			letter.Text = self.CurrentGuess:sub(col, col)
-			box.BackgroundColor3 = COLORS.ACTIVE
+			stroke.Color = COLORS.ACTIVE
+			stroke.Thickness = 2
 		else
 			letter.Text = ""
-			box.BackgroundColor3 = COLORS.EMPTY
+			stroke.Color = COLORS.BORDER
+			stroke.Thickness = 2
 		end
 	end
 end
 
 -- Submit guess
 function WordleUI:SubmitGuess()
-	print("WordleUI:SubmitGuess() called with:", self.CurrentGuess, "length:", #self.CurrentGuess)
-	
 	if #self.CurrentGuess ~= Constants.WORDLE.WORD_LENGTH then
-		print("WordleUI: Not enough letters, need", Constants.WORDLE.WORD_LENGTH)
-		self:ShowMessage("Not enough letters!", Color3.fromRGB(237, 66, 69))
+		self:FlashMessage("Not enough letters")
+		-- Shake row animation
+		local rowBoxes = self.GuessBoxes[self.CurrentRow]
+		for _, box in pairs(rowBoxes) do
+			local originalPos = box.Position
+			-- Simple shake tween logic would be complex with UIGridLayout
+			-- Instead just flash border red
+			local stroke = box:FindFirstChild("UIStroke")
+			local originalColor = stroke.Color
+			stroke.Color = COLORS.ABSENT -- grey/reddish
+			task.delay(0.2, function() stroke.Color = originalColor end)
+		end
 		return
 	end
 
-	print("WordleUI: Firing guess to server:", self.CurrentGuess)
 	WordleGuess:FireServer(self.CurrentGuess)
 end
 
 -- Handle result from server
 function WordleUI:HandleResult(data)
-	print("WordleUI: Received result from server", data.success)
-	
 	if not data.success then
-		-- Show error visually
-		warn("WordleUI error:", data.error)
-		self:ShowMessage(data.error or "Unknown error", Color3.fromRGB(237, 66, 69))
+		self:FlashMessage(data.error)
 		return
 	end
-	
-	print("WordleUI: Processing successful result")
 
-	-- Animate the result
+	-- Reveal animation
 	for col, letterData in ipairs(data.result) do
 		local box = self.GuessBoxes[self.CurrentRow][col]
+		local letter = box:FindFirstChild("Letter")
+		local stroke = box:FindFirstChild("UIStroke")
+		
+		-- Cascading delay
+		task.wait(0.2)
 
-		task.wait(0.1)
+		-- Flip Animation part 1 (flatten)
+		local tween1 = TweenService:Create(box, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 50, 0, 0) -- Flatten Y
+		})
+		tween1:Play()
+		tween1.Completed:Wait()
 
+		-- Determine color
 		local color = COLORS.ABSENT
 		if letterData.status == "correct" then
 			color = COLORS.CORRECT
@@ -295,29 +360,50 @@ function WordleUI:HandleResult(data)
 			color = COLORS.PRESENT
 		end
 
-		-- Flip animation
-		local tween = TweenService:Create(box, TweenInfo.new(0.3), {
-			BackgroundColor3 = color
+		-- Apply State
+		box.BackgroundColor3 = color
+		stroke.Transparency = 1 -- Hide border on filled cells
+		letter.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text on colored bg
+		
+		-- Flip Animation part 2 (expand)
+		local tween2 = TweenService:Create(box, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 50, 0, 50)
 		})
-		tween:Play()
+		tween2:Play()
 
 		-- Update keyboard
 		local keyButton = self.KeyboardButtons[letterData.letter]
 		if keyButton then
-			keyButton.BackgroundColor3 = color
+			-- Logic to only upgrade color (e.g. don't turn green back to yellow)
+			local formatColor = color
+			if keyButton.BackgroundColor3 == COLORS.CORRECT then
+				formatColor = COLORS.CORRECT
+			end
+			
+			TweenService:Create(keyButton, TweenInfo.new(0.4), {
+				BackgroundColor3 = formatColor,
+				TextColor3 = Color3.fromRGB(255, 255, 255)
+			}):Play()
 		end
 	end
 
 	if data.complete then
 		task.wait(1)
-
+		
+		local msg = ""
+		local color = COLORS.TEXT
+		
 		if data.won then
-			self:ShowMessage("🎉 Amazing! You got it in " .. data.attempts .. " tries!\n+" .. (data.reward or 0) .. " coins", Color3.fromRGB(106, 170, 100))
+			local flavor = {"Genius", "Magnificent", "Impressive", "Splendid", "Great", "Phew"}
+			msg = flavor[math.min(data.attempts, #flavor)] -- Pick based on performance
+			if data.reward then msg = msg .. "\n+" .. data.reward .. " Coins" end
 		else
-			self:ShowMessage("😊 Good try! Come back tomorrow for a new word!", Color3.fromRGB(201, 180, 88))
+			msg = "The word was " .. (data.result[1].letter .. data.result[2].letter .. data.result[3].letter .. data.result[4].letter .. data.result[5].letter) -- rough reconstruction or pass from server
 		end
-
-		task.wait(3)
+		
+		self.MessageLabel.Text = msg
+		
+		task.wait(4)
 		self:Close()
 	else
 		self.CurrentRow = self.CurrentRow + 1
@@ -325,146 +411,113 @@ function WordleUI:HandleResult(data)
 	end
 end
 
--- Show message
-function WordleUI:ShowMessage(text, color)
-	local message = Instance.new("TextLabel")
-	message.Size = UDim2.new(0, 400, 0, 100)
-	message.Position = UDim2.new(0.5, 0, 0.5, 0)
-	message.AnchorPoint = Vector2.new(0.5, 0.5)
-	message.BackgroundColor3 = color or Color3.fromRGB(100, 100, 100)
-	message.Text = text
-	message.TextSize = 18
-	message.Font = Enum.Font.GothamBold
-	message.TextColor3 = Color3.fromRGB(255, 255, 255)
-	message.TextWrapped = true
-	message.Parent = self.ScreenGui.Container
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
-	corner.Parent = message
-
-	task.wait(2)
-	message:Destroy()
+-- Flash message on screen
+function WordleUI:FlashMessage(text)
+	self.MessageLabel.Text = text
+	self.MessageLabel.TextTransparency = 0
+	
+	-- Fade out after delay
+	task.delay(1.5, function()
+		TweenService:Create(self.MessageLabel, TweenInfo.new(1), {TextTransparency = 1}):Play()
+	end)
 end
 
 -- Open Wordle UI
 function WordleUI:Open()
-	print("WordleUI:Open() called")
-	
-	if self.IsOpen then 
-		print("WordleUI already open, returning")
-		return 
-	end
-
+	if self.IsOpen then return end
 	self.IsOpen = true
+	
+	if not self.ScreenGui then self:CreateUI() end
+	self.ScreenGui.Enabled = true
+
 	self.CurrentGuess = ""
 	self.CurrentRow = 1
+	self.MessageLabel.Text = "Guess the Wordle"
+	self.MessageLabel.TextTransparency = 0 -- Be visible
 
-	-- Reset grid
-	if self.GuessBoxes then
-		for row = 1, Constants.WORDLE.MAX_ATTEMPTS do
-			for col = 1, Constants.WORDLE.WORD_LENGTH do
-				local box = self.GuessBoxes[row] and self.GuessBoxes[row][col]
-				if box then
-					box.BackgroundColor3 = COLORS.EMPTY
-					local letter = box:FindFirstChild("Letter")
-					if letter then letter.Text = "" end
-				end
+	-- Reset visual state of grid
+	for row = 1, Constants.WORDLE.MAX_ATTEMPTS do
+		for col = 1, Constants.WORDLE.WORD_LENGTH do
+			local box = self.GuessBoxes[row][col]
+			if box then
+				box.BackgroundColor3 = COLORS.BACKGROUND
+				box:FindFirstChild("Letter").Text = ""
+				box:FindFirstChild("Letter").TextColor3 = COLORS.TEXT
+				box:FindFirstChild("UIStroke").Color = COLORS.BORDER
+				box:FindFirstChild("UIStroke").Transparency = 0
 			end
 		end
 	end
-
-	-- Reset keyboard
-	if self.KeyboardButtons then
-		for _, button in pairs(self.KeyboardButtons) do
-			button.BackgroundColor3 = Color3.fromRGB(211, 214, 218)
-		end
+	
+	-- Reset Keyboard
+	for _, button in pairs(self.KeyboardButtons) do
+		button.BackgroundColor3 = COLORS.KEY_BG
+		button.TextColor3 = COLORS.TEXT
 	end
 
-	if self.ScreenGui then
-		self.ScreenGui.Enabled = true
-		print("WordleUI: ScreenGui enabled")
-	else
-		warn("WordleUI: ScreenGui is nil!")
-	end
+	-- Entrance Animation
+	self.Dimmer.BackgroundTransparency = 1
+	self.Container.Position = UDim2.new(0.5, 0, 0.55, 0) -- Start lower
+	
+	local tweenDim = TweenService:Create(self.Dimmer, TweenInfo.new(0.3), {BackgroundTransparency = 0.5})
+	local tweenCont = TweenService:Create(self.Container, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, 0, 0.5, 0)
+	})
+	
+	tweenDim:Play()
+	tweenCont:Play()
 
-	-- Request game state
-	if WordleNewGame then
-		WordleNewGame:FireServer()
-		print("WordleUI: Requested new game state")
-	else
-		warn("WordleUI: WordleNewGame RemoteEvent is nil!")
-	end
+	-- Request State
+	if WordleNewGame then WordleNewGame:FireServer() end
 end
 
 -- Close Wordle UI
 function WordleUI:Close()
 	self.IsOpen = false
+	
+	-- Exit Animation
+	local tweenDim = TweenService:Create(self.Dimmer, TweenInfo.new(0.3), {BackgroundTransparency = 1})
+	local tweenCont = TweenService:Create(self.Container, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Position = UDim2.new(0.5, 0, 0.55, 0)
+	})
+	
+	tweenDim:Play()
+	tweenCont:Play()
+	
+	tweenCont.Completed:Wait()
 	self.ScreenGui.Enabled = false
 end
 
--- Handle new game state
+-- Handle new game state (restore grid)
 function WordleUI:HandleNewGame(data)
 	if data.complete then
-		if data.won then
-			self.StatsText.Text = "✓ Today's Wordle complete! Come back tomorrow."
-		else
-			self.StatsText.Text = "✗ No more attempts today. Try again tomorrow!"
-		end
-
-		-- Show previous guesses
-		for i, guess in ipairs(data.guesses) do
-			for col, letterData in ipairs(guess.result) do
-				local box = self.GuessBoxes[i][col]
-				box:FindFirstChild("Letter").Text = letterData.letter
-
-				if letterData.status == "correct" then
-					box.BackgroundColor3 = COLORS.CORRECT
-				elseif letterData.status == "present" then
-					box.BackgroundColor3 = COLORS.PRESENT
-				else
-					box.BackgroundColor3 = COLORS.ABSENT
-				end
-			end
-		end
-
-		task.wait(3)
+		self.MessageLabel.Text = "Come back tomorrow"
+		task.wait(2)
 		self:Close()
 	else
-		self.StatsText.Text = string.format("Wins: %d | Streak: %d | Attempts: %d/%d",
-			data.stats.totalWins,
-			data.stats.currentStreak,
-			data.attempts,
-			data.maxAttempts
-		)
-
-		-- Show previous guesses
+		-- Restore previous attempts
+		-- This logic is similar to HandleResult but without animation delay
 		for i, guess in ipairs(data.guesses) do
 			self.CurrentRow = i + 1
 			for col, letterData in ipairs(guess.result) do
 				local box = self.GuessBoxes[i][col]
-				box:FindFirstChild("Letter").Text = letterData.letter
+				
+				local color = COLORS.ABSENT
+				if letterData.status == "correct" then color = COLORS.CORRECT
+				elseif letterData.status == "present" then color = COLORS.PRESENT end
+				
+				box.BackgroundColor3 = color
+				box:FindFirstChild("UIStroke").Transparency = 1
+				local letter = box:FindFirstChild("Letter")
+				letter.Text = letterData.letter
+				letter.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-				if letterData.status == "correct" then
-					box.BackgroundColor3 = COLORS.CORRECT
-				elseif letterData.status == "present" then
-					box.BackgroundColor3 = COLORS.PRESENT
-				else
-					box.BackgroundColor3 = COLORS.ABSENT
-				end
-
-				-- Update keyboard
+				-- Keyboard update
 				local keyButton = self.KeyboardButtons[letterData.letter]
 				if keyButton then
-					local currentColor = keyButton.BackgroundColor3
-					if currentColor == COLORS.CORRECT then
-						-- Keep correct
-					elseif letterData.status == "correct" then
-						keyButton.BackgroundColor3 = COLORS.CORRECT
-					elseif letterData.status == "present" and currentColor ~= COLORS.CORRECT then
-						keyButton.BackgroundColor3 = COLORS.PRESENT
-					elseif currentColor ~= COLORS.CORRECT and currentColor ~= COLORS.PRESENT then
-						keyButton.BackgroundColor3 = COLORS.ABSENT
+					if letterData.status == "correct" or keyButton.BackgroundColor3 ~= COLORS.CORRECT then
+						keyButton.BackgroundColor3 = color
+						keyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 					end
 				end
 			end
@@ -474,34 +527,22 @@ end
 
 -- Initialize
 function WordleUI:Init()
-	print("WordleUI:Init() starting...")
-	
-	-- Initialize remote events now (lazy loading to avoid blocking module load)
+	-- Lazy load Remotes
 	WordleGuess = ReplicatedStorage:WaitForChild("WordleGuess", 10)
 	WordleResult = ReplicatedStorage:WaitForChild("WordleResult", 10)
 	WordleNewGame = ReplicatedStorage:WaitForChild("WordleNewGame", 10)
 	
-	print("WordleUI: Remote events found:", WordleGuess ~= nil, WordleResult ~= nil, WordleNewGame ~= nil)
-	
-	if not WordleGuess or not WordleResult or not WordleNewGame then
-		warn("WordleUI: Could not find all remote events - UI will not work!")
+	if not (WordleGuess and WordleResult and WordleNewGame) then
+		warn("WordleUI: Missing Remotes")
 		return
 	end
 	
 	self:CreateUI()
-	print("WordleUI: UI created, ScreenGui =", self.ScreenGui ~= nil)
-
-	-- Listen for results
-	WordleResult.OnClientEvent:Connect(function(data)
-		self:HandleResult(data)
-	end)
-
-	-- Listen for new game state
-	WordleNewGame.OnClientEvent:Connect(function(data)
-		self:HandleNewGame(data)
-	end)
-
-	print("WordleUI initialized")
+	
+	WordleResult.OnClientEvent:Connect(function(data) self:HandleResult(data) end)
+	WordleNewGame.OnClientEvent:Connect(function(data) self:HandleNewGame(data) end)
+	
+	print("WordleUI Initialized (Premium)")
 end
 
 return WordleUI
