@@ -3,11 +3,22 @@
 	Manages Wordle game logic, daily words, and player attempts
 	Server-authoritative word checking and scoring
 
-	Words come from the vendored list in Constants.WORDLE.WORDS (no
-	external HTTP dependency). The daily word is chosen deterministically
-	from the date so every player gets the same word each day.
+	Daily word source: the Random Words API by Kush Creates
+	(https://random-words-api.kushcreates.com) - GET /api returns
+	[{"word":"WASTE","length":5,"category":"wordle",...}]. The fetched
+	word is validated (5 letters, A-Z), retried a few times, and cached
+	in memory keyed by date so every player in the server gets the same
+	daily word. If the API is unreachable, the daily word falls back to a
+	deterministic pick from the vendored Constants.WORDLE.WORDS list using
+	Random.new(dateSeed), so the game works fully offline.
+
+	Guess validation: guesses are validated against the vendored word list
+	only (VALID_WORDS below). The API does not provide a cheap dictionary
+	lookup endpoint, so vendored-list validation is the simple, robust
+	option - it always works and never depends on the network.
 ]]
 
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local WordleManager = {}
@@ -29,15 +40,21 @@ local WordleNewGame = Instance.new("RemoteEvent")
 WordleNewGame.Name = "WordleNewGame"
 WordleNewGame.Parent = ReplicatedStorage
 
--- Set of valid words, built from the vendored list
+-- Random Words API (Kush Creates). Verified live: returns an array of
+-- objects like {"word":"WASTE","length":5,"category":"wordle"}.
+-- category=wordle restricts results to common Wordle-style words.
+local WORD_API_URL = "https://random-words-api.kushcreates.com/api?category=wordle&length=5&words=1&type=uppercase"
+local API_RETRIES = 3
+local API_TIMEOUT = 5 -- seconds per attempt
+
+-- Set of accepted guesses, built from the vendored list
 local VALID_WORDS = {}
 for _, word in ipairs(Constants.WORDLE.WORDS) do
 	VALID_WORDS[word:upper()] = true
 end
 
--- Daily word selection (resets at midnight UTC)
-local currentDailyWord = nil
-local lastWordDate = nil
+-- Daily word cache, keyed by date string so all players share one word
+local dailyWordCache = {}
 
 -- Get today's date string
 local function getTodayDate()
@@ -46,28 +63,66 @@ local function getTodayDate()
 	return string.format("%04d-%02d-%02d", date.year, date.month, date.day)
 end
 
--- Select daily word deterministically from the date
+-- Deterministic fallback word from the vendored list, seeded by date so
+-- all servers pick the same fallback word on the same day
+local function fallbackWord(today)
+	local seed = 0
+	for i = 1, #today do
+		seed = seed * 31 + string.byte(today, i)
+	end
+	local rng = Random.new(seed)
+
+	local wordList = Constants.WORDLE.WORDS
+	return wordList[rng:NextInteger(1, #wordList)]:upper()
+end
+
+-- Fetch one 5-letter word from the Random Words API.
+-- Returns the word (uppercase) or nil if every attempt failed.
+local function fetchWordFromAPI()
+	for attempt = 1, API_RETRIES do
+		local ok, response = pcall(function()
+			return HttpService:RequestAsync({
+				Url = WORD_API_URL,
+				Method = "GET",
+				Timeout = API_TIMEOUT,
+			})
+		end)
+
+		if ok and response.Success then
+			local decodeOk, decoded = pcall(function()
+				return HttpService:JSONDecode(response.Body)
+			end)
+
+			if decodeOk and type(decoded) == "table" and type(decoded[1]) == "table" and type(decoded[1].word) == "string" then
+				local word = decoded[1].word:upper()
+
+				-- Only accept a clean 5-letter A-Z word
+				if #word == Constants.WORDLE.WORD_LENGTH and word:match("^[A-Z]+$") then
+					return word
+				end
+			end
+		end
+
+		-- Back off briefly before retrying
+		if attempt < API_RETRIES then
+			task.wait(0.5 * attempt)
+		end
+	end
+
+	return nil
+end
+
+-- Get today's daily word: cached per date, API first, vendored fallback
 local function selectDailyWord()
 	local today = getTodayDate()
 
-	if today ~= lastWordDate then
-		lastWordDate = today
-
-		-- Deterministic seed from the date string so all servers/players
-		-- get the same word on the same day. Uses Random.new(seed) instead
-		-- of math.randomseed, which reseeds the global RNG.
-		local seed = 0
-		for i = 1, #today do
-			seed = seed * 31 + string.byte(today, i)
-		end
-		local rng = Random.new(seed)
-
-		local wordList = Constants.WORDLE.WORDS
-		currentDailyWord = wordList[rng:NextInteger(1, #wordList)]:upper()
-		print("Daily Wordle word selected for", today)
+	if dailyWordCache[today] then
+		return dailyWordCache[today]
 	end
 
-	return currentDailyWord
+	local word = fetchWordFromAPI() or fallbackWord(today)
+	dailyWordCache[today] = word
+	return word
 end
 
 -- Check if a guess is valid (right length, letters only, in word list)
@@ -334,8 +389,8 @@ function WordleManager:Init(playerDataService, currencyManager)
 	self.PlayerDataService = playerDataService
 	self.CurrencyManager = currencyManager
 
-	-- Select initial daily word
-	selectDailyWord()
+	-- Warm the daily word cache in the background (the fetch can yield)
+	task.spawn(selectDailyWord)
 
 	-- Handle guess requests
 	WordleGuess.OnServerEvent:Connect(function(player, guess)
@@ -347,7 +402,7 @@ function WordleManager:Init(playerDataService, currencyManager)
 		self:SendGameState(player)
 	end)
 
-	print("WordleManager initialized (vendored word list,", #Constants.WORDLE.WORDS, "words)")
+	print("WordleManager initialized (Random Words API + vendored fallback,", #Constants.WORDLE.WORDS, "words)")
 end
 
 return WordleManager
