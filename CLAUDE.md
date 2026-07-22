@@ -68,20 +68,30 @@ Use when you want to organize Rojo structure differently from filesystem.
 - `ZoneManager` resolves spawn locations via `Constants.ZONES[*].SpawnName`
 - Zone structures are built by `WorldBuilder`, not stored as models in the repo
 
+### Wordle Daily Word
+- `WordleManager` fetches the daily word from the Random Words API (https://random-words-api.kushcreates.com, endpoint `/api?category=wordle&length=5&words=1`) with pcall + timeout + retries, validates it is 5 letters A-Z, and caches it per date
+- On any API failure it falls back to a deterministic `Random.new(dateSeed)` pick from the vendored `Constants.WORDLE.WORDS` list, so the game works fully offline
+- Guesses are validated against the vendored list only (the API has no cheap dictionary-lookup endpoint)
+
+### Fashion Boutique Shop
+- Items are defined once in `Constants.FASHION.ITEMS`; `CurrencyManager` builds its server-side `ITEM_CATALOG` from it and `FashionUI` renders the shop from it
+- Purchase flow: boutique ProximityPrompt fires `OpenFashionUI` (with inventory + balance) -> client `FashionUI` fires `PurchaseRequest` with the item ID -> server validates price/ownership/funds, charges, grants into `Zones.FashionBoutique.OwnedItems`, and replies via `PurchaseResult`
+- `PlayerDataService.DEFAULT_DATA` already includes `Zones.FashionBoutique.OwnedItems`; the existing default-data merge makes this migration-safe for existing players
+
 ### Server Initialization Order (as implemented in Init.server.lua)
 1. PlayerDataService - Must initialize first (data dependency)
 2. CurrencyManager - Depends on PlayerDataService
 3. WorldBuilder:BuildWorld() - Builds terrain/structures/spawns BEFORE anything that needs them
 4. ZoneManager - Needs the spawn locations WorldBuilder just created
 5. WordleManager - Depends on PlayerDataService and CurrencyManager
-6. InteractionManager - Waits on the `WorldBuilt` attribute, then creates ProximityPrompts
+6. InteractionManager - Depends on PlayerDataService/CurrencyManager (fashion inventory), waits on the `WorldBuilt` attribute, then creates ProximityPrompts
 
 ### Client-Server Communication
 - RemoteEvents are created in server-side managers
 - Stored in ReplicatedStorage for client access
 - Client listens, server fires (for updates)
 - Client fires, server validates (for requests)
-- Purchases: client sends only an item ID; `CurrencyManager` looks up the price in its server-side `ITEM_CATALOG`
+- Purchases: client sends only an item ID; `CurrencyManager` looks up the price in its server-side `ITEM_CATALOG` and reports the outcome via `PurchaseResult`
 
 ## Git Configuration
 
@@ -89,22 +99,15 @@ Use when you want to organize Rojo structure differently from filesystem.
 
 Commits go directly to `main`.
 
-**Never put tokens in the git remote URL** (e.g. `https://TOKEN@github.com/...`) - tokens in URLs leak into shell history, `.git/config`, and logs. Instead:
-
-1. **Use the GitHub CLI (recommended):**
-   ```bash
-   gh auth login
-   gh auth setup-git
-   ```
-   This configures git to use a credential helper; no token is stored in the repo.
-
-2. **Or use the git credential manager:**
-   ```bash
-   git config --global credential.helper store   # or 'manager' / 'cache'
-   ```
-   Then authenticate once with a personal access token when prompted.
-
-3. Rotate tokens periodically and use fine-grained tokens with only the needed scopes.
+Authenticate once with the GitHub CLI (recommended):
+```bash
+gh auth login
+gh auth setup-git
+```
+Or use an OS credential helper:
+```bash
+git config --global credential.helper manager   # or 'store' / 'cache'
+```
 
 **CRITICAL:** Always push commits to remote immediately. User cannot access local commits - they only see what's pushed to GitHub.
 
@@ -123,6 +126,7 @@ Commits go directly to `main`.
 - [ ] Check HUD displays (currency, zone name)
 - [ ] Test teleportation between zones (M key)
 - [ ] Play a Wordle round (glowing purple prompt at the library)
+- [ ] Buy an item at the Fashion Boutique and verify the Owned state and coin deduction
 - [ ] Sit on the swing at Ella's Lookout and verify it swings
 - [ ] Verify data saves/loads correctly
 
@@ -169,6 +173,9 @@ DataStores don't work in local Studio testing by default. To enable:
 1. Game Settings → Security → Enable Studio Access to API Services
 2. Without it, PlayerDataService falls back to default data in Studio
 
+### Wordle API Errors in Studio
+The daily-word fetch needs HTTP requests enabled (Game Settings → Security → Enable Studio Access to API Services) and outbound network access. If the fetch fails, WordleManager silently falls back to the vendored word list - check Output for HTTP errors only if the fallback seems to trigger unexpectedly.
+
 ### Player Doesn't Spawn
 - Check ZoneManager initialized correctly
 - Verify spawn locations exist in Workspace (WorldBuilder creates them)
@@ -185,7 +192,7 @@ DataStores don't work in local Studio testing by default. To enable:
 - Use Constants.lua for all positioning, never hardcode values
 
 ## Future Improvements
-- [ ] Implement Fashion Boutique outfit designer (currently a stub prompt)
+- [ ] Fashion Boutique: apply purchased items visually to the character (currently ownership is recorded only)
 - [ ] Implement Building Area tools (currently a stub prompt)
 - [ ] Add zone icons to Constants.ZONES
 - [ ] Add error handling for missing spawn locations
