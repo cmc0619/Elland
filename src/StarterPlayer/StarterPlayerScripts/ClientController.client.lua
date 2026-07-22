@@ -6,7 +6,6 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 -- Get player references
@@ -16,7 +15,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Load shared modules
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
--- Load UI modules (they're LocalScripts, so we require them)
+-- Load UI modules (they are ModuleScripts required by this LocalScript)
 local WordleUI = require(script.Parent:WaitForChild("WordleUI"))
 local ZoneMenuUI = require(script.Parent:WaitForChild("ZoneMenuUI"))
 
@@ -48,14 +47,17 @@ end
 
 -- Handle currency updates from server
 local function onCurrencyChanged(newAmount, change)
-	print("ClientController: Currency changed! New amount:", newAmount, "Change:", change)
 	ClientController.Currency = newAmount
 
+	-- Show gain/loss notifications without blocking the event handler
 	if change > 0 then
-		print("ClientController: Showing gain animation for", change)
-		ClientController:ShowCurrencyGain(change)
+		task.spawn(function()
+			ClientController:ShowCurrencyGain(change)
+		end)
 	elseif change < 0 then
-		ClientController:ShowCurrencyLoss(math.abs(change))
+		task.spawn(function()
+			ClientController:ShowCurrencyLoss(math.abs(change))
+		end)
 	end
 
 	ClientController:UpdateCurrencyDisplay()
@@ -64,7 +66,7 @@ end
 -- Show currency gain animation
 function ClientController:ShowCurrencyGain(amount)
 	if not self.MainHUD then return end
-	
+
 	local notification = Instance.new("TextLabel")
 	notification.Size = UDim2.new(0, 200, 0, 40)
 	notification.Position = UDim2.new(1, -220, 0, 80)
@@ -80,7 +82,6 @@ function ClientController:ShowCurrencyGain(amount)
 	corner.Parent = notification
 
 	-- Animate
-	notification.Position = UDim2.new(1, -220, 0, 80)
 	TweenService:Create(notification, TweenInfo.new(0.3), {
 		Position = UDim2.new(1, -220, 0, 90)
 	}):Play()
@@ -99,7 +100,7 @@ end
 -- Show currency loss animation
 function ClientController:ShowCurrencyLoss(amount)
 	if not self.MainHUD then return end
-	
+
 	local notification = Instance.new("TextLabel")
 	notification.Size = UDim2.new(0, 200, 0, 40)
 	notification.Position = UDim2.new(1, -220, 0, 80)
@@ -125,7 +126,7 @@ function ClientController:ShowCurrencyLoss(amount)
 	notification:Destroy()
 end
 
--- Create enhanced HUD
+-- Create HUD
 function ClientController:CreateHUD()
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "MainHUD"
@@ -150,7 +151,7 @@ function ClientController:CreateHUD()
 	currencyLabel.Size = UDim2.new(1, -20, 1, 0)
 	currencyLabel.Position = UDim2.new(0, 10, 0, 0)
 	currencyLabel.BackgroundTransparency = 1
-	currencyLabel.Text = "💰 0 Coins"
+	currencyLabel.Text = "0 " .. Constants.CURRENCY_NAME
 	currencyLabel.TextColor3 = Color3.fromRGB(50, 50, 50)
 	currencyLabel.TextSize = 20
 	currencyLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -175,7 +176,7 @@ function ClientController:CreateHUD()
 	zoneLabel.Size = UDim2.new(1, -20, 0, 30)
 	zoneLabel.Position = UDim2.new(0, 10, 0, 5)
 	zoneLabel.BackgroundTransparency = 1
-	zoneLabel.Text = "📍 By the River"
+	zoneLabel.Text = "By the River"
 	zoneLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	zoneLabel.TextSize = 18
 	zoneLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -215,7 +216,7 @@ function ClientController:CreateHUD()
 	controlsLabel.Size = UDim2.new(1, -20, 1, 0)
 	controlsLabel.Position = UDim2.new(0, 10, 0, 0)
 	controlsLabel.BackgroundTransparency = 1
-	controlsLabel.Text = "🗺️  Press M to open Map\n📚 Look for glowing objects to interact"
+	controlsLabel.Text = "Press M to open Map\nLook for glowing objects to interact"
 	controlsLabel.TextSize = 14
 	controlsLabel.Font = Enum.Font.Gotham
 	controlsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -228,17 +229,13 @@ function ClientController:CreateHUD()
 	self.ZoneLabel = zoneLabel
 	self.ZoneFrame = zoneFrame
 
-	print("Enhanced HUD created")
+	print("HUD created")
 end
 
 -- Update currency display
 function ClientController:UpdateCurrencyDisplay()
-	print("ClientController:UpdateCurrencyDisplay called, currency:", self.Currency, "label exists:", self.CurrencyLabel ~= nil)
 	if self.CurrencyLabel then
-		self.CurrencyLabel.Text = "💰 " .. tostring(self.Currency) .. " Coins"
-		print("ClientController: Updated label to:", self.CurrencyLabel.Text)
-	else
-		warn("ClientController: CurrencyLabel is nil!")
+		self.CurrencyLabel.Text = tostring(self.Currency) .. " " .. Constants.CURRENCY_NAME
 	end
 end
 
@@ -247,100 +244,10 @@ function ClientController:UpdateZoneDisplay(zoneName)
 	if self.ZoneLabel and self.ZoneFrame then
 		local zoneData = Constants.ZONES[zoneName or self.CurrentZone]
 		if zoneData then
-			self.ZoneLabel.Text = "📍 " .. zoneData.Name
+			self.ZoneLabel.Text = zoneData.Name
 			self.ZoneFrame.BackgroundColor3 = zoneData.Color
 		end
 	end
-end
-
--- Create welcome screen
-function ClientController:CreateWelcomeScreen()
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "WelcomeScreen"
-	screenGui.ResetOnSpawn = false
-	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-	local background = Instance.new("Frame")
-	background.Size = UDim2.new(1, 0, 1, 0)
-	background.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-	background.BorderSizePixel = 0
-	background.Parent = screenGui
-
-	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new{
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 150, 255)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 150, 255))
-	}
-	gradient.Rotation = 45
-	gradient.Parent = background
-
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 600, 0, 100)
-	title.Position = UDim2.new(0.5, 0, 0.3, 0)
-	title.AnchorPoint = Vector2.new(0.5, 0.5)
-	title.BackgroundTransparency = 1
-	title.Text = "Welcome to ELLAND"
-	title.TextSize = 48
-	title.Font = Enum.Font.GothamBold
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextStrokeTransparency = 0.5
-	title.Parent = background
-
-	local subtitle = Instance.new("TextLabel")
-	subtitle.Size = UDim2.new(0, 600, 0, 150)
-	subtitle.Position = UDim2.new(0.5, 0, 0.5, 0)
-	subtitle.AnchorPoint = Vector2.new(0.5, 0.5)
-	subtitle.BackgroundTransparency = 1
-	subtitle.Text = "Explore the world, play Wordle, design fashion,\nand build amazing creations!\n\n🗺️  Press M anytime to open the Map\n📚 Find the Wordle Library to play word puzzles"
-	subtitle.TextSize = 18
-	subtitle.Font = Enum.Font.Gotham
-	subtitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-	subtitle.TextWrapped = true
-	subtitle.Parent = background
-
-	local continueButton = Instance.new("TextButton")
-	continueButton.Size = UDim2.new(0, 250, 0, 60)
-	continueButton.Position = UDim2.new(0.5, 0, 0.7, 0)
-	continueButton.AnchorPoint = Vector2.new(0.5, 0.5)
-	continueButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	continueButton.Text = "Start Exploring!"
-	continueButton.TextSize = 24
-	continueButton.Font = Enum.Font.GothamBold
-	continueButton.TextColor3 = Color3.fromRGB(100, 150, 255)
-	continueButton.Parent = background
-
-	local buttonCorner = Instance.new("UICorner")
-	buttonCorner.CornerRadius = UDim.new(0, 12)
-	buttonCorner.Parent = continueButton
-
-	local function closeWelcomeScreen()
-		TweenService:Create(background, TweenInfo.new(0.5), {
-			BackgroundTransparency = 1
-		}):Play()
-
-		TweenService:Create(title, TweenInfo.new(0.5), {
-			TextTransparency = 1
-		}):Play()
-
-		TweenService:Create(subtitle, TweenInfo.new(0.5), {
-			TextTransparency = 1
-		}):Play()
-
-		TweenService:Create(continueButton, TweenInfo.new(0.5), {
-			BackgroundTransparency = 1,
-			TextTransparency = 1
-		}):Play()
-
-		task.wait(0.5)
-		screenGui:Destroy()
-	end
-
-	continueButton.MouseButton1Click:Connect(closeWelcomeScreen)
-
-	-- Auto-close after 3 seconds so player isn't stuck
-	task.delay(3, closeWelcomeScreen)
-
-	screenGui.Parent = playerGui
 end
 
 -- Set up movement for a character
@@ -350,44 +257,37 @@ local function setupCharacterMovement(character)
 		warn("Could not find Humanoid")
 		return
 	end
-	
+
 	humanoid.WalkSpeed = 16
 	humanoid.JumpPower = 50
 	humanoid.AutoRotate = true
-	
+
 	-- Ensure the humanoid can move
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-	humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-	
-	print("Movement settings enforced - WalkSpeed:", humanoid.WalkSpeed, "JumpPower:", humanoid.JumpPower)
-	
+
 	-- Monitor and fix movement if it gets stuck
 	task.spawn(function()
 		while humanoid and humanoid.Parent do
 			task.wait(0.5)
-			
+
 			-- Check WalkSpeed
 			if humanoid.WalkSpeed ~= 16 then
 				humanoid.WalkSpeed = 16
-				print("Fixed WalkSpeed")
 			end
-			
+
 			-- Check States
 			if not humanoid:GetStateEnabled(Enum.HumanoidStateType.Running) then
 				humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-				print("Re-enabled Running state")
 			end
-			
+
 			-- Check Anchored (common cause of "stuck in run animation")
 			local rootPart = character:FindFirstChild("HumanoidRootPart")
 			if rootPart and rootPart.Anchored then
 				rootPart.Anchored = false
-				print("Fixed: Unanchored HumanoidRootPart")
 			end
 		end
-		print("Movement monitor ended (character removed)")
 	end)
 end
 
@@ -399,10 +299,9 @@ function ClientController:Init()
 	if player.Character then
 		setupCharacterMovement(player.Character)
 	end
-	
+
 	-- Handle character respawns
 	player.CharacterAdded:Connect(function(newCharacter)
-		print("Character respawned, setting up movement")
 		setupCharacterMovement(newCharacter)
 	end)
 
@@ -431,8 +330,8 @@ function ClientController:Init()
 	if not wordleSuccess then
 		warn("WordleUI init failed:", wordleError)
 	end
-	
-	-- Listen for Wordle open event from server
+
+	-- Listen for Wordle open event from server (ProximityPrompt at the library)
 	local openWordleEvent = ReplicatedStorage:WaitForChild("OpenWordleUI", 10)
 	if openWordleEvent then
 		openWordleEvent.OnClientEvent:Connect(function()
@@ -440,9 +339,8 @@ function ClientController:Init()
 				WordleUI:Open()
 			end
 		end)
-		print("Wordle UI event connected")
 	end
-	
+
 	local zoneSuccess, zoneError = pcall(function()
 		ZoneMenuUI:Init()
 	end)
@@ -459,13 +357,7 @@ function ClientController:Init()
 	-- Finished loading
 	self.IsLoading = false
 
-	print("ClientController initialized")
-	print("Welcome to Elland!")
-
-	-- Store reference globally for other scripts
-	_G.ClientController = self
-	_G.WordleUI = WordleUI
-	_G.ZoneMenuUI = ZoneMenuUI
+	print("ClientController initialized. Welcome to Elland!")
 end
 
 -- Start the controller

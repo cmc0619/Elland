@@ -35,9 +35,6 @@
         "Constants": {
           "$path": "src/ReplicatedStorage/Shared/Constants.lua"
         }
-      },
-      "Modules": {
-        "$path": "src/ReplicatedStorage/Modules"
       }
     },
 
@@ -53,17 +50,7 @@
         },
         "ZoneMenuUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/ZoneMenuUI.lua"
-        },
-        "InteractionHandler": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts/InteractionHandler.client.lua"
         }
-      }
-    },
-
-    "StarterGui": {
-      "$className": "StarterGui",
-      "UI": {
-        "$path": "src/StarterGui/UI"
       }
     },
 
@@ -71,21 +58,6 @@
       "$className": "Workspace",
       "$properties": {
         "FilteringEnabled": true
-      },
-      "Zones": {
-        "$className": "Folder",
-        "WordGarden": {
-          "$path": "src/Workspace/Zones/WordGarden"
-        },
-        "FashionDistrict": {
-          "$path": "src/Workspace/Zones/FashionDistrict"
-        },
-        "MathAcademy": {
-          "$path": "src/Workspace/Zones/MathAcademy"
-        },
-        "CreativeCommons": {
-          "$path": "src/Workspace/Zones/CreativeCommons"
-        }
       }
     }
   }
