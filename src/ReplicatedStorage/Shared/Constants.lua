@@ -27,8 +27,6 @@ Constants.WORLD = {
 }
 
 -- Zones with world positions (terrain is Y=0 to Y=10, spawns at Y=12)
--- SpawnName matches the SpawnLocation created by WorldBuilder.
--- TODO: Icon assets still need to be created/uploaded; add rbxassetid here.
 Constants.ZONES = {
 	Hub = {
 		Name = "By the River",
@@ -128,9 +126,6 @@ Constants.WORDLE = {
 	WORD_LENGTH = 5,
 	MAX_ATTEMPTS = 6,
 	DAILY_REWARD = 50,
-	-- Vendored word list: used as the offline fallback for the daily word
-	-- (when the Random Words API is unreachable) and as the set of accepted
-	-- guesses. 5-letter words appropriate for 11-13 year olds.
 	WORDS = {
 		"ABOUT", "APPLE", "BEACH", "BRAVE", "BREAD", "BRICK", "BRING",
 		"CANDY", "CHAIR", "CHARM", "CLOUD", "CREEK", "DANCE", "DREAM",
@@ -148,10 +143,6 @@ Constants.WORDLE = {
 
 -- Fashion Boutique Settings
 Constants.FASHION = {
-	-- Purchasable cosmetic items. This table is the single source of truth:
-	-- CurrencyManager builds its server-side price catalog from it and the
-	-- client FashionUI renders the shop from it. Buying records ownership in
-	-- the player's saved data (Zones.FashionBoutique.OwnedItems).
 	ITEMS = {
 		{ Id = "FreshSneakers", Name = "Fresh Sneakers", Cost = 40, Description = "Comfy kicks for exploring Elland" },
 		{ Id = "SparkleHat", Name = "Sparkle Hat", Cost = 50, Description = "A hat that catches the sunlight" },
@@ -311,10 +302,6 @@ Constants.NUTCRACKER = {
 }
 
 -- Seasonal overlays (run by SeasonManager at server start, using os.date)
--- ORDER lists season IDs checked in priority order; the first whose date
--- window contains today wins. Windows are INCLUSIVE and may wrap the new
--- year (StartMonth > EndMonth). Adding Halloween/Spring later is data-only:
--- add an entry to LIST and its ID to ORDER - no SeasonManager code changes.
 Constants.SEASONS = {
 	ORDER = { "WINTER" },
 	LIST = {
@@ -328,6 +315,28 @@ Constants.SEASONS = {
 			LamppostColor = Color3.fromRGB(255, 244, 224), -- Lamp heads glow warm-white
 			TreeCanopyTint = Color3.fromRGB(218, 234, 226), -- Snow-dusted green canopies
 		},
+	},
+}
+
+-- Algebra Academy (run by AlgebraManager): a little schoolhouse between
+-- the Hub and the Wordle Library. The "Linear Lab" prompt starts a
+-- 5-question LINEAR-only practice session; questions are generated AND
+-- validated server-side (the client only sends a choice index). Coins
+-- are capped per session with a per-player cooldown, and AlgebraStats
+-- persist in player data.
+Constants.ALGEBRA = {
+	POSITION = Vector3.new(-140, 10, 100), -- Clear of the river and the Hub->Library path
+	QUESTIONS_PER_SESSION = 5,
+	COINS_PER_CORRECT = 2,
+	SESSION_COIN_CAP = 10, -- 5 correct answers x 2 Coins
+	SESSION_COOLDOWN = 300, -- 5 minutes between Linear Lab sessions per player
+	SESSION_TIMEOUT = 300, -- Abandoned sessions expire after this
+	ENCOURAGEMENTS = {
+		"Slope superstar!",
+		"Brain power!",
+		"Algebra ace!",
+		"You cracked it!",
+		"Math magic!",
 	},
 }
 

@@ -37,6 +37,12 @@ local DEFAULT_DATA = {
 	-- Talent Show: shows hosted at Ella's Stage + best audience reaction
 	TalentShowsHosted = 0,
 	BestApplause = 0,
+	-- Algebra Academy: Linear Lab practice stats
+	AlgebraStats = {
+		Sessions = 0,
+		Correct = 0,
+		BestStreak = 0,
+	},
 	Zones = {
 		WordleLibrary = {
 			Completed = {},

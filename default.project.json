@@ -62,6 +62,9 @@
       "HuntManager": {
         "$path": "src/ServerScriptService/HuntManager.lua"
       },
+      "AlgebraManager": {
+        "$path": "src/ServerScriptService/AlgebraManager.lua"
+      },
       "SeasonManager": {
         "$path": "src/ServerScriptService/SeasonManager.lua"
       },
@@ -104,6 +107,9 @@
         },
         "TalentShowUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/TalentShowUI.lua"
+        },
+        "AlgebraUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/AlgebraUI.lua"
         },
         "PetFollow": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/PetFollow.client.lua"

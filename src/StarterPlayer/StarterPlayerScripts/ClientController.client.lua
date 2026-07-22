@@ -22,6 +22,7 @@ local FashionUI = require(script.Parent:WaitForChild("FashionUI"))
 local PetUI = require(script.Parent:WaitForChild("PetUI"))
 local BakeShopUI = require(script.Parent:WaitForChild("BakeShopUI"))
 local TalentShowUI = require(script.Parent:WaitForChild("TalentShowUI"))
+local AlgebraUI = require(script.Parent:WaitForChild("AlgebraUI"))
 
 -- Create the ClientController table
 local ClientController = {}
@@ -427,6 +428,14 @@ function ClientController:Init()
 	end)
 	if not talentSuccess then
 		warn("TalentShowUI init failed:", talentError)
+	end
+
+	-- Algebra Academy Linear Lab (listens for OpenAlgebraUI internally)
+	local algebraSuccess, algebraError = pcall(function()
+		AlgebraUI:Init()
+	end)
+	if not algebraSuccess then
+		warn("AlgebraUI init failed:", algebraError)
 	end
 
 	-- Listen for world-event notifications (e.g. Nutcracker Plaza tree)

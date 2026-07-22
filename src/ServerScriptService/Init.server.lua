@@ -28,6 +28,7 @@ local FamilyBuilder = require(ServerScriptService.FamilyBuilder)
 local PetManager = require(ServerScriptService.PetManager)
 local BakeryManager = require(ServerScriptService.BakeryManager)
 local HuntManager = require(ServerScriptService.HuntManager)
+local AlgebraManager = require(ServerScriptService.AlgebraManager)
 local SeasonManager = require(ServerScriptService.SeasonManager)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
@@ -79,6 +80,9 @@ BakeryManager:Init(PlayerDataService, CurrencyManager)
 
 print("Initializing HuntManager...")
 HuntManager:Init(PlayerDataService, CurrencyManager)
+
+print("Initializing AlgebraManager...")
+AlgebraManager:Init(PlayerDataService, CurrencyManager)
 
 -- Seasonal overlay AFTER the world, polish, nature, and plaza exist
 print("Applying seasonal decorations...")
