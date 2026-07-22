@@ -15,6 +15,8 @@ local CurrencyChanged = Instance.new("RemoteEvent")
 CurrencyChanged.Name = "CurrencyChanged"
 CurrencyChanged.Parent = ReplicatedStorage
 
+-- Reserved for a future purchase UI: no client fires this yet, but the
+-- server handler below is already wired up and price-checked server-side.
 local PurchaseRequest = Instance.new("RemoteEvent")
 PurchaseRequest.Name = "PurchaseRequest"
 PurchaseRequest.Parent = ReplicatedStorage

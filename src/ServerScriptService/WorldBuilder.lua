@@ -186,7 +186,8 @@ function WorldBuilder:CreateEllasLookout()
 	seat.Name = "SwingSeat"
 	seat.Size = Vector3.new(4, 0.5, 2)
 	local seatPos = branch.Position + Vector3.new(0, -8, 0)
-	-- Rotate 90 degrees on Y so the sitter faces outward from the trunk
+	-- Rotate 90 degrees on Y so the sitter faces outward from the trunk.
+	-- NOTE: this maps seat-local +X to world -Z (and -X to world +Z).
 	seat.CFrame = CFrame.new(seatPos) * CFrame.Angles(0, math.rad(90), 0)
 	seat.Anchored = false
 	seat.BrickColor = BrickColor.new("Medium brown")
@@ -195,23 +196,26 @@ function WorldBuilder:CreateEllasLookout()
 	-- Attachments on the seat (top face, left/right edges)
 	local seatAttachL = Instance.new("Attachment")
 	seatAttachL.Name = "SeatAttachL"
-	seatAttachL.Position = Vector3.new(-1.5, 0.25, 0)
+	seatAttachL.Position = Vector3.new(-1.5, 0.25, 0) -- World Z + 1.5 (seat rotated 90°)
 	seatAttachL.Parent = seat
 
 	local seatAttachR = Instance.new("Attachment")
 	seatAttachR.Name = "SeatAttachR"
-	seatAttachR.Position = Vector3.new(1.5, 0.25, 0)
+	seatAttachR.Position = Vector3.new(1.5, 0.25, 0) -- World Z - 1.5 (seat rotated 90°)
 	seatAttachR.Parent = seat
 
-	-- Attachments on the branch, aligned vertically with the seat attachments
+	-- Attachments on the branch, aligned vertically with the seat attachments.
+	-- Because the seat is rotated 90° on Y, SeatAttachL sits on the world +Z
+	-- side and SeatAttachR on the world -Z side, so the branch attachments use
+	-- matching Z signs to keep each rope straight (uncrossed).
 	local branchAttachL = Instance.new("Attachment")
 	branchAttachL.Name = "BranchAttachL"
-	branchAttachL.Position = Vector3.new(0, -0.5, -1.5)
+	branchAttachL.Position = Vector3.new(0, -0.5, 1.5)
 	branchAttachL.Parent = branch
 
 	local branchAttachR = Instance.new("Attachment")
 	branchAttachR.Name = "BranchAttachR"
-	branchAttachR.Position = Vector3.new(0, -0.5, 1.5)
+	branchAttachR.Position = Vector3.new(0, -0.5, -1.5)
 	branchAttachR.Parent = branch
 
 	-- Rope constraints connect seat to branch (Visible draws the rope)
@@ -314,14 +318,11 @@ function WorldBuilder:BuildStructure(config)
 
 	-- Back and side walls
 	newPart("BackWall", Vector3.new(sizeX, wallHeight, 1),
-		Vector3.new(pos.X, wallY, pos.Z + sizeZ / 2),
-		config.WallColor, wallMaterial, wallTransparency)
+		Vector3.new(pos.X, wallY, pos.Z + sizeZ / 2), config.WallColor, wallMaterial, wallTransparency)
 	newPart("LeftWall", Vector3.new(1, wallHeight, sizeZ),
-		Vector3.new(pos.X - sizeX / 2, wallY, pos.Z),
-		config.WallColor, wallMaterial, wallTransparency)
+		Vector3.new(pos.X - sizeX / 2, wallY, pos.Z), config.WallColor, wallMaterial, wallTransparency)
 	newPart("RightWall", Vector3.new(1, wallHeight, sizeZ),
-		Vector3.new(pos.X + sizeX / 2, wallY, pos.Z),
-		config.WallColor, wallMaterial, wallTransparency)
+		Vector3.new(pos.X + sizeX / 2, wallY, pos.Z), config.WallColor, wallMaterial, wallTransparency)
 
 	-- Roof
 	local wallTop = wallY + wallHeight / 2
