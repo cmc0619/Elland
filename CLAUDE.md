@@ -60,25 +60,42 @@ In Rojo, when a directory contains an `init.lua` file, Rojo automatically infers
 - `WorldBuilder:BuildWorld()` builds terrain/river/hill/structures/spawns and sets `Workspace:GetAttribute("WorldBuilt")`
 - Right after, `Init.server.lua` runs the additional builders in order (all destroy any previous copy of their output folder first, so they stay idempotent):
   1. `PolishBuilder` - Lighting (Atmosphere/ColorCorrection/Bloom/SunRays, ClockTime 17.2, ShadowMap), Clouds, Hub-to-zone cobble paths (they bridge the river), lampposts, Hub fountain
-  2. `NatureBuilder` - Seeded (`NATURE.TREE_SEED`) tree/flower scatter with keep-outs (river, paths, hill+swing, zone structures, all attraction areas)
-  3. `BuildingSandbox`, `ObbyManager`, `SoccerManager`, `StageManager`, `NutcrackerBuilder`, `FamilyBuilder` - the attractions
+  2. `NatureBuilder` - Seeded (`NATURE.TREE_SEED`) tree/flower scatter with keep-outs (river, paths, hill+swing, zone structures, all attraction areas including Pet Corner and the Bake Shop)
+  3. `BuildingSandbox`, `ObbyManager`, `SoccerManager`, `StageManager`, `NutcrackerBuilder`, `FamilyBuilder`, `PetManager`, `BakeryManager`, `HuntManager` - the attractions
 - `WorldUtils` provides `DistanceToRiver` (recomputes the meander from `Constants.WORLD`), `DistanceToSegment2D`, and `DistanceToNearestPath` - reuse these for any new scatter/placement logic
-- Terrain:FillCylinder's axis runs along the CFrame's **Z axis** - rotate 90 degrees to make horizontal layers. For cylinder PARTS, the axis runs along the part's **X axis** - rotate about Z (`CFrame.Angles(0, 0, math.rad(90))`) to stand them up (fountain basin, candy canes, nutcracker hat)
+- Terrain:FillCylinder's axis runs along the CFrame's **Z axis** - rotate 90 degrees to make horizontal layers. For cylinder PARTS, the axis runs along the part's **X axis** - rotate about Z (`CFrame.Angles(0, 0, math.rad(90))`) to stand them up (fountain basin, candy canes, nutcracker hat, cupcake wrappers)
 
 ### Positions and Constants
-- All attraction positions/sizes/rewards/cooldowns live in `Constants` (`LIGHTING`, `NATURE`, `PATHS`, `HUB`, `BUILDING_SANDBOX`, `OBBY`, `SOCCER`, `STAGE`, `NUTCRACKER`, `FAMILY`) - never hardcode coordinates in builders
+- All attraction positions/sizes/rewards/cooldowns live in `Constants` (`LIGHTING`, `NATURE`, `PATHS`, `HUB`, `BUILDING_SANDBOX`, `OBBY`, `SOCCER`, `STAGE`, `NUTCRACKER`, `FAMILY`, `PETS`, `BAKERY`, `HUNT`) - never hardcode coordinates in builders. New sections should be purely additive tables like these (wave-2 features: talent show, seasonal, algebra - follow the same pattern)
 - New attractions were placed far from the river diagonal (RIVER_START (-300,-100) to RIVER_END (300,100) passes through the Hub with a ±30-stud meander). Always check `WorldUtils:DistanceToRiver` before placing anything new near the map center
+- When adding a structure anywhere the NatureBuilder scatter might reach, add a keep-out circle in `NatureBuilder`'s `buildKeepOuts()` (see the PETS/BAKERY entries)
 
 ### Economy and Rewards
-- ALL currency awards go through `CurrencyManager:AddCurrency` server-side with per-player cooldown tables keyed by `UserId` (obby winner 5 min, soccer goal 1 min, stage perform 2 min, sandbox rate limit 0.15 s)
+- ALL currency awards go through `CurrencyManager:AddCurrency` server-side with per-player cooldown tables keyed by `UserId` (obby winner 5 min, soccer goal 1 min, stage perform 2 min, sandbox rate limit 0.15 s, bake perfect bonus 2 min)
 - Cooldown/state tables are cleaned up in `Players.PlayerRemoving`
+
+### Pet Corner (PetManager / PetUI / PetFollow)
+- Catalog: `Constants.PETS.LIST` (Id/Name/Cost/Description/BodyColor/AccentColor); server builds its price catalog from it - client sends only the petId
+- Remotes (created at module load): `OpenPetUI`, `PetPurchaseRequest`/`PetPurchaseResult`, `PetEquipRequest`/`PetEquipResult`. `PetEquipRequest` with NO petId = dismiss
+- Data: `Pets` (array of IDs) + `ActivePet` in DEFAULT_DATA; `mergeData` migrates old saves
+- Follow trick: the server spawns an ANCHORED model in `Workspace/Pets` with an `OwnerUserId` attribute and positions it once; `PetFollow.client.lua` lerps every pet on Heartbeat toward a point behind its owner's replicated character (+ sine bob). Zero per-frame network traffic, smooth for every viewer. Never make pet parts collidable
+
+### Ella's Bake Shop (BakeryManager / BakeShopUI)
+- Recipes: `Constants.BAKERY.ITEMS`; baking is an activity, not a plain purchase
+- Two-step flow: `BakeStartRequest` (validate recipe/ownership/funds, stamp `os.clock()`) -> client minigame (progress bar + one timed button per `BAKERY.STEPS` entry) -> `BakeCompleteRequest(itemId, perfectClicks)`. Server rejects completions faster than `BAKERY.MIN_COMPLETION_TIME`, charges on completion only, saves to `BakeryItems`
+- Perfect bonus (+5 Coins when every step clicked in time) has a 2-minute per-player cooldown - do not make it farmable
+
+### Music Note Hunt (HuntManager / HuntClient)
+- `Constants.HUNT.NOTES` = 10 positions, none underwater (checked against the river meander)
+- Touch collection is once per player, persisted (`HuntNotes` array of indexes, `HuntCompleted` flag); the server ignores repeat touches, so notes never respawn for that player
+- Per-player visibility: server fires `HuntNoteUpdate(collectedIndexes, completed, total)` on join (after data load) and after each pickup; `HuntClient` hides those notes LOCALLY (Transparency/emitters/lights) and shows a HUD counter. Hiding is local-only so other players still see their own uncollected notes
 
 ### Leaderstats
 - `ObbyManager` creates `leaderstats["Obby Stage"]`; `SoccerManager` adds `leaderstats["Goals"]`. Both create the `leaderstats` folder if missing and guard with `FindFirstChild`, so init order between them doesn't matter
 - `ZoneManager` only teleports to the Hub on the FIRST `CharacterAdded` per player - later respawns belong to the Obby checkpoint system (it teleports the character to its highest checkpoint pad after death)
 
 ### Notifications
-- Server modules fire the shared `NotifyPlayer` RemoteEvent (created by `NutcrackerBuilder` if missing); `ClientController:ShowNotification(text)` renders a toast. Reuse this for any new one-liner world events
+- Server modules fire the shared `NotifyPlayer` RemoteEvent (created by `NutcrackerBuilder` if missing - newer modules use the same `FindFirstChild`-or-create pattern); `ClientController:ShowNotification(text)` renders a toast. Reuse this for any new one-liner world events
 
 ### Building Sandbox
 - Blocks are session-only (`Workspace/PlayerBuilds/<UserId>`), cap 200/player, 2-stud grid snap, owner-only delete. Persistence via `Constants.BUILDING`/DataStore is future work
@@ -93,13 +110,15 @@ In Rojo, when a directory contains an `init.lua` file, Rojo automatically infers
 4. PolishBuilder, NatureBuilder - Visual pass on top of the base world
 5. BuildingSandbox, ObbyManager, SoccerManager, StageManager - Attractions (currency-aware ones receive CurrencyManager)
 6. NutcrackerBuilder, FamilyBuilder - Decorative corners
-7. ZoneManager - Needs the spawn locations WorldBuilder created
-8. WordleManager - Depends on PlayerDataService and CurrencyManager
-9. InteractionManager - Waits on the `WorldBuilt` attribute, then creates ProximityPrompts
+7. PetManager, BakeryManager, HuntManager - Persistent-data attractions (receive PlayerDataService + CurrencyManager)
+8. ZoneManager - Needs the spawn locations WorldBuilder created
+9. WordleManager - Depends on PlayerDataService and CurrencyManager
+10. InteractionManager - Waits on the `WorldBuilt` attribute, then creates ProximityPrompts
 
 ### Client-Server Communication
-- RemoteEvents are created in server-side managers (at module load where clients `WaitForChild` them, e.g. `BuildPlaceRequest`, `NotifyPlayer`)
-- Client fires, server validates (placement, purchases); server fires, client renders (currency, notifications, UI opens)
+- RemoteEvents are created in server-side managers (at module load where clients `WaitForChild` them, e.g. `BuildPlaceRequest`, `NotifyPlayer`, `PetPurchaseRequest`, `HuntNoteUpdate`)
+- Client fires, server validates (placement, purchases, adoptions, bakes); server fires, client renders (currency, notifications, UI opens, note hiding)
+- New UI modules follow the FashionUI pattern: ModuleScript in StarterPlayerScripts with `CreateUI/Open/Close/Init`, required and initialized by `ClientController` inside a pcall; the module waits on its own remotes in `Init`. Standalone client behaviors (PetFollow, HuntClient) are `.client.lua` LocalScripts that don't need ClientController wiring
 
 ## Git Configuration
 
@@ -112,6 +131,9 @@ Commits go directly to `main`. **CRITICAL:** Always push commits to remote immed
 - [ ] Verify player spawns at Hub, lighting looks warm, clouds visible
 - [ ] HUD displays (currency, zone name); M opens the zone map
 - [ ] Wordle round and boutique purchase still work
+- [ ] Pet Corner: adopt, follow/bob, switch, dismiss, respawn persistence
+- [ ] Bake Shop: minigame completes, timing sanity holds, recipe saved, bonus cooldown
+- [ ] Hunt: note pays + toasts, counter updates, hidden after rejoin, completion confetti
 - [ ] Build Tool: place/delete in-plot only, grid snap, cap, Clear My Plot
 - [ ] Obby: checkpoints, checkpoint respawn after death, winner cooldown
 - [ ] Soccer: kick direction, goal scoring, ball reset watchdog
@@ -143,11 +165,16 @@ Verify `CurrencyChanged` RemoteEvent exists and the client listener is connected
 ### Obby respawns at the wrong place
 ZoneManager must stay "Hub on first spawn only" - if it teleports on every CharacterAdded it will fight the Obby checkpoint respawn.
 
+### Pet doesn't follow / appears frozen
+The server only positions the pet once - movement is `PetFollow.client.lua` pivoting models in `Workspace/Pets` each Heartbeat. If pets freeze, check that the model has the `OwnerUserId` attribute and that PetFollow found the `Pets` folder (it waits 30s).
+
 ## Future Improvements
 - [ ] Fashion Boutique: apply purchased items visually to the character
+- [ ] Pet accessories / tricks
 - [ ] Persist Building Area builds via DataStore
 - [ ] Owner-provided stage songs (`Constants.STAGE.CHOIR_SONGS`)
 - [ ] Add zone icons to Constants.ZONES
+- [ ] Wave 2 features: talent show, seasonal events, algebra corner (add NEW additive Constants sections - don't restructure existing ones)
 - [ ] Implement mock DataStore for offline testing
 - [ ] Add admin commands for testing currency/zones
 - [ ] Add automated tests for core systems
@@ -167,5 +194,5 @@ ZoneManager must stay "Hub on first spawn only" - if it teleports on every Chara
 
 ---
 
-**Last Updated:** 2025-11-29
-**Project Version:** 0.2.0
+**Last Updated:** 2025-11-30
+**Project Version:** 0.3.0
