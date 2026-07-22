@@ -1,0 +1,4 @@
+# Toolchain configuration for Aftman (https://github.com/LPGhatguy/aftman)
+# Install with: aftman install
+[tools]
+rojo = "rojo-rbx/rojo@7.4.4"
