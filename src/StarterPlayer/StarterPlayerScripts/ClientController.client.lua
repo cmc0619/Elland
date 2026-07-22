@@ -18,6 +18,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 -- Load UI modules (they are ModuleScripts required by this LocalScript)
 local WordleUI = require(script.Parent:WaitForChild("WordleUI"))
 local ZoneMenuUI = require(script.Parent:WaitForChild("ZoneMenuUI"))
+local FashionUI = require(script.Parent:WaitForChild("FashionUI"))
 
 -- Create the ClientController table
 local ClientController = {}
@@ -346,6 +347,24 @@ function ClientController:Init()
 	end)
 	if not zoneSuccess then
 		warn("ZoneMenuUI init failed:", zoneError)
+	end
+
+	-- Fashion Boutique shop
+	local fashionSuccess, fashionError = pcall(function()
+		FashionUI:Init()
+	end)
+	if not fashionSuccess then
+		warn("FashionUI init failed:", fashionError)
+	end
+
+	-- Listen for Fashion open event from server (ProximityPrompt at the boutique)
+	local openFashionEvent = ReplicatedStorage:WaitForChild("OpenFashionUI", 10)
+	if openFashionEvent then
+		openFashionEvent.OnClientEvent:Connect(function(ownedItems, currency)
+			if FashionUI and FashionUI.Open then
+				FashionUI:Open(ownedItems, currency)
+			end
+		end)
 	end
 
 	-- Update displays
