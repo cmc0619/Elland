@@ -163,9 +163,6 @@ Constants.FASHION = {
 }
 
 -- Pet Corner Settings
--- Adoptable pets. PetManager builds its server-side price catalog from LIST
--- (the client never sets prices), PetUI renders the adoption list from it,
--- and ownership is saved in player data (Pets / ActivePet).
 Constants.PETS = {
 	POSITION = Vector3.new(50, 10, 100), -- Fenced pen between the Hub and the soccer pitch (clear of the river)
 	FENCE_HALF_SIZE = 12, -- Square pen; studs from center to each fence line
@@ -187,10 +184,6 @@ Constants.PETS = {
 }
 
 -- Ella's Bake Shop Settings
--- Family recipes. BakeryManager builds its server-side catalog from ITEMS
--- (the client never sets prices) and BakeShopUI renders the menu from it.
--- Baking is a timed activity: the server validates the start and the
--- completion timing, then records the baked good in BakeryItems.
 Constants.BAKERY = {
 	POSITION = Vector3.new(180, 10, -70), -- Beside Ella's House, well clear of the river
 	ITEMS = {
@@ -209,9 +202,6 @@ Constants.BAKERY = {
 }
 
 -- Music Note Hunt Settings
--- 10 glowing eighth-note pickups hidden around the whole map (never
--- underwater). HuntManager builds/animates them and records per-player
--- progress in saved data (HuntNotes / HuntCompleted).
 Constants.HUNT = {
 	NOTE_REWARD = 5, -- Coins per note found
 	COMPLETE_REWARD = 100, -- Bonus for finding all 10
@@ -240,7 +230,6 @@ Constants.BUILDING = {
 }
 
 -- Building Area sandbox (live block-placing, handled by BuildingSandbox)
--- The plot is the BuildingPlatform built by WorldBuilder (80x80 at the zone).
 Constants.BUILDING_SANDBOX = {
 	GRID_SIZE = 2, -- Placement snaps to a 2-stud grid
 	BLOCK_SIZE = Vector3.new(4, 2, 4),
@@ -300,18 +289,10 @@ Constants.STAGE = {
 	PERFORM_REWARD = 15,
 	PERFORM_COOLDOWN = 120, -- 2 minutes between payouts per player
 	BILLBOARD_DURATION = 30, -- Seconds the performer's name stays up
-	-- Song audio IDs for Perform! -- the owner must upload/license the audio
-	-- in Roblox and paste the asset IDs here, e.g.:
-	--   "rbxassetid://1234567890",
-	-- Left empty on purpose: no audio plays until real IDs are added.
 	CHOIR_SONGS = {},
 }
 
 -- Talent Show (extends Ella's Stage, run by TalentShowManager)
--- One server-managed show at a time: the host performs, everyone else
--- votes in the last VOTING_WINDOW seconds, and the host earns Coins
--- scaled by the audience's applause. Stats persist (TalentShowsHosted /
--- BestApplause in player data).
 Constants.TALENT_SHOW = {
 	DURATION = 60, -- Total seconds a show runs
 	VOTING_WINDOW = 30, -- Last N seconds are open for audience votes
@@ -327,6 +308,27 @@ Constants.NUTCRACKER = {
 	PLAZA_SIZE = Vector3.new(34, 1, 34),
 	TREE_TOUCH_COOLDOWN = 30, -- Seconds between tree twinkle messages per player
 	TREE_MESSAGE = "Break a leg, Ella!",
+}
+
+-- Seasonal overlays (run by SeasonManager at server start, using os.date)
+-- ORDER lists season IDs checked in priority order; the first whose date
+-- window contains today wins. Windows are INCLUSIVE and may wrap the new
+-- year (StartMonth > EndMonth). Adding Halloween/Spring later is data-only:
+-- add an entry to LIST and its ID to ORDER - no SeasonManager code changes.
+Constants.SEASONS = {
+	ORDER = { "WINTER" },
+	LIST = {
+		WINTER = {
+			Name = "Winter",
+			StartMonth = 12, StartDay = 1, -- Dec 1
+			EndMonth = 1, EndDay = 6, -- through Jan 6 (wraps the new year)
+			MapSnowRate = 12, -- Gentle map-wide snowfall (particles/sec)
+			NutcrackerSnowMultiplier = 2, -- Boosts the plaza's EXISTING snow (no duplicate emitter)
+			FairyLightColor = Color3.fromRGB(255, 240, 210), -- Warm-white strings on lampposts
+			LamppostColor = Color3.fromRGB(255, 244, 224), -- Lamp heads glow warm-white
+			TreeCanopyTint = Color3.fromRGB(218, 234, 226), -- Snow-dusted green canopies
+		},
+	},
 }
 
 -- Family touches

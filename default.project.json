@@ -62,6 +62,9 @@
       "HuntManager": {
         "$path": "src/ServerScriptService/HuntManager.lua"
       },
+      "SeasonManager": {
+        "$path": "src/ServerScriptService/SeasonManager.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }

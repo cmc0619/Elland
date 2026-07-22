@@ -28,6 +28,7 @@ local FamilyBuilder = require(ServerScriptService.FamilyBuilder)
 local PetManager = require(ServerScriptService.PetManager)
 local BakeryManager = require(ServerScriptService.BakeryManager)
 local HuntManager = require(ServerScriptService.HuntManager)
+local SeasonManager = require(ServerScriptService.SeasonManager)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
@@ -78,6 +79,10 @@ BakeryManager:Init(PlayerDataService, CurrencyManager)
 
 print("Initializing HuntManager...")
 HuntManager:Init(PlayerDataService, CurrencyManager)
+
+-- Seasonal overlay AFTER the world, polish, nature, and plaza exist
+print("Applying seasonal decorations...")
+SeasonManager:Init()
 
 -- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")
