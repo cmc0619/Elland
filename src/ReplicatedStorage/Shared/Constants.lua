@@ -184,6 +184,7 @@ Constants.BAKERY = {
 		{ Id = "CinnamonRoll", Name = "Cinnamon Roll", Cost = 18, Description = "Sunday morning classic" },
 		{ Id = "Pie", Name = "Pie", Cost = 25, Description = "Apple pie with a lattice top" },
 		{ Id = "BirthdayCake", Name = "Birthday Cake", Cost = 40, Description = "Three layers, all the sprinkles" },
+		{ Id = "Gumbo", Name = "Campbell Family Gumbo", Cost = 22, Description = "The Campbell family recipe - a big warm pot of love" },
 	},
 	BAKE_DURATION = 6, -- Seconds the minigame runs
 	MIN_COMPLETION_TIME = 4, -- Server sanity: a bake can't finish faster than this
