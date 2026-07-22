@@ -19,34 +19,40 @@ local PurchaseRequest = Instance.new("RemoteEvent")
 PurchaseRequest.Name = "PurchaseRequest"
 PurchaseRequest.Parent = ReplicatedStorage
 
--- Currency rewards configuration
+-- Currency rewards configuration (keyed by Constants.ZONES names)
 local CURRENCY_REWARDS = {
-	WordGarden = {
-		PuzzleComplete = 10,
-		PerfectScore = 25,
-		DailyChallenge = 50,
+	WordleLibrary = {
+		DailyComplete = 50,
 	},
-	FashionDistrict = {
+	FashionBoutique = {
 		OutfitCreate = 15,
 		ShowcaseWin = 100,
 		DailyVisit = 20,
 	},
-	MathAcademy = {
-		ProblemSolved = 10,
-		QuizComplete = 50,
-		PerfectQuiz = 100,
-	},
-	CreativeCommons = {
+	BuildingArea = {
 		BuildSave = 20,
 		BuildShowcase = 75,
 		DailyBuild = 30,
 	},
 }
 
+-- Server-side item price catalog. PurchaseRequest ignores any cost sent
+-- by the client and only trusts prices defined here.
+local ITEM_CATALOG = {
+	-- Fashion Boutique items
+	FashionHat = 50,
+	FashionShirt = 75,
+	FashionPants = 75,
+	FashionAccessory = 100,
+	-- Building Area blueprints
+	BuildBlueprintSmall = 25,
+	BuildBlueprintLarge = 100,
+}
+
 -- Get player's current currency
 function CurrencyManager:GetCurrency(player)
 	if not self.PlayerDataService then
-		warn("PlayerDataService not initialized")
+		warn("CurrencyManager: PlayerDataService not initialized")
 		return 0
 	end
 
@@ -60,14 +66,12 @@ end
 
 -- Add currency to player
 function CurrencyManager:AddCurrency(player, amount, reason)
-	print("CurrencyManager:AddCurrency called for", player.Name, "amount:", amount, "reason:", reason)
-	
 	if not self.PlayerDataService then
-		warn("CurrencyManager: PlayerDataService not initialized!")
+		warn("CurrencyManager: PlayerDataService not initialized")
 		return false
 	end
 
-	if amount <= 0 then
+	if type(amount) ~= "number" or amount <= 0 then
 		warn("CurrencyManager: Cannot add non-positive currency amount:", amount)
 		return false
 	end
@@ -78,15 +82,10 @@ function CurrencyManager:AddCurrency(player, amount, reason)
 		return false
 	end
 
-	local oldAmount = data.Currency or 0
-	local newAmount = oldAmount + amount
-
+	local newAmount = (data.Currency or 0) + amount
 	self.PlayerDataService:UpdateData(player, "Currency", newAmount)
 
-	print("CurrencyManager:", player.Name, "earned", amount, "coins. Total:", newAmount)
-
 	-- Notify client
-	print("CurrencyManager: Firing CurrencyChanged to client")
 	CurrencyChanged:FireClient(player, newAmount, amount)
 
 	return true
@@ -95,33 +94,29 @@ end
 -- Remove currency from player
 function CurrencyManager:RemoveCurrency(player, amount, reason)
 	if not self.PlayerDataService then
-		warn("PlayerDataService not initialized")
+		warn("CurrencyManager: PlayerDataService not initialized")
 		return false
 	end
 
-	if amount <= 0 then
-		warn("Cannot remove non-positive currency amount:", amount)
+	if type(amount) ~= "number" or amount <= 0 then
+		warn("CurrencyManager: Cannot remove non-positive currency amount:", amount)
 		return false
 	end
 
 	local data = self.PlayerDataService:GetData(player)
 	if not data then
-		warn("No data found for", player.Name)
+		warn("CurrencyManager: No data found for", player.Name)
 		return false
 	end
 
 	local currentAmount = data.Currency or 0
 
 	if currentAmount < amount then
-		warn(player.Name, "does not have enough currency. Has:", currentAmount, "Needs:", amount)
 		return false
 	end
 
 	local newAmount = currentAmount - amount
 	self.PlayerDataService:UpdateData(player, "Currency", newAmount)
-
-	print(player.Name, "spent", amount, "currency.", "Reason:", reason or "Unknown")
-	print(player.Name, "total currency:", newAmount)
 
 	-- Notify client
 	CurrencyChanged:FireClient(player, newAmount, -amount)
@@ -131,19 +126,18 @@ end
 
 -- Check if player can afford something
 function CurrencyManager:CanAfford(player, amount)
-	local currentAmount = self:GetCurrency(player)
-	return currentAmount >= amount
+	return self:GetCurrency(player) >= amount
 end
 
 -- Award currency for activity completion
 function CurrencyManager:AwardActivity(player, zone, activity)
 	if not CURRENCY_REWARDS[zone] then
-		warn("Unknown zone:", zone)
+		warn("CurrencyManager: Unknown zone:", zone)
 		return false
 	end
 
 	if not CURRENCY_REWARDS[zone][activity] then
-		warn("Unknown activity:", activity, "in zone:", zone)
+		warn("CurrencyManager: Unknown activity:", activity, "in zone:", zone)
 		return false
 	end
 
@@ -153,52 +147,50 @@ function CurrencyManager:AwardActivity(player, zone, activity)
 	return self:AddCurrency(player, amount, reason)
 end
 
--- Handle purchase requests from client
-function CurrencyManager:HandlePurchaseRequest(player, itemId, cost)
-	if not self:CanAfford(player, cost) then
-		warn(player.Name, "cannot afford item", itemId, "- Cost:", cost)
+-- Handle purchase requests from client. The client only identifies the
+-- item; the price is always looked up server-side in ITEM_CATALOG.
+function CurrencyManager:HandlePurchaseRequest(player, itemId)
+	local cost = ITEM_CATALOG[itemId]
+	if not cost then
+		warn("CurrencyManager: Unknown item", itemId, "requested by", player.Name)
 		return false
 	end
 
-	-- Remove currency
-	local success = self:RemoveCurrency(player, cost, "Purchase: " .. itemId)
-
-	if success then
-		print(player.Name, "purchased", itemId, "for", cost)
-		return true
+	if not self:CanAfford(player, cost) then
+		return false
 	end
 
-	return false
+	return self:RemoveCurrency(player, cost, "Purchase: " .. itemId)
 end
 
 -- Initialize the manager
 function CurrencyManager:Init(playerDataService)
 	self.PlayerDataService = playerDataService
 
-	-- Handle purchase requests
-	PurchaseRequest.OnServerEvent:Connect(function(player, itemId, cost)
-		local success = self:HandlePurchaseRequest(player, itemId, cost)
-		-- You would typically fire back a response event here
-		-- and handle the actual item granting in a separate system
+	-- Handle purchase requests (itemId only; client-sent cost is ignored)
+	PurchaseRequest.OnServerEvent:Connect(function(player, itemId)
+		self:HandlePurchaseRequest(player, itemId)
+		-- Item granting itself belongs to the system that owns the item
 	end)
 
-	-- Notify players of their currency on join
+	-- Notify players of their currency once their data is loaded
 	Players.PlayerAdded:Connect(function(player)
-		print("CurrencyManager: Player joined, waiting for client to be ready...")
-		-- Wait longer for client scripts to initialize
-		task.wait(3)
-		local currency = self:GetCurrency(player)
-		print("CurrencyManager: Sending initial currency to", player.Name, ":", currency)
-		CurrencyChanged:FireClient(player, currency, 0)
+		task.spawn(function()
+			-- Wait for PlayerDataService to finish loading
+			while not self.PlayerDataService:GetData(player) and player.Parent do
+				task.wait(0.5)
+			end
+			if player.Parent then
+				CurrencyChanged:FireClient(player, self:GetCurrency(player), 0)
+			end
+		end)
 	end)
-	
+
 	-- Also handle players already in game (for Studio testing)
 	for _, player in ipairs(Players:GetPlayers()) do
 		task.spawn(function()
 			task.wait(1)
-			local currency = self:GetCurrency(player)
-			print("CurrencyManager: Sending initial currency to existing player", player.Name, ":", currency)
-			CurrencyChanged:FireClient(player, currency, 0)
+			CurrencyChanged:FireClient(player, self:GetCurrency(player), 0)
 		end)
 	end
 

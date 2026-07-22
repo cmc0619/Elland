@@ -1,6 +1,6 @@
 --[[
 	ZoneManager
-	Handles zone teleportation and zone-specific logic
+	Handles zone teleportation
 	All zones are accessible from the start - no progression gates
 ]]
 
@@ -20,25 +20,16 @@ TeleportRequest.Parent = ReplicatedStorage
 -- Zone spawn locations (populated from Constants and Workspace)
 local ZONES = {}
 
--- Find spawn location in Workspace (created by WorldBuilder)
+-- Find spawn location in Workspace (created by WorldBuilder).
+-- The spawn name comes from Constants.ZONES[zoneName].SpawnName so
+-- there is a single source of truth.
 local function findSpawnLocation(zoneName)
-	-- Spawn locations are named like "LookoutSpawn", "HouseSpawn", etc.
-	local spawnNames = {
-		Hub = "HubSpawn",
-		EllasLookout = "LookoutSpawn",
-		EllasHouse = "HouseSpawn",
-		WordleLibrary = "LibrarySpawn",
-		FashionBoutique = "BoutiqueSpawn",
-		BuildingArea = "BuildingSpawn",
-	}
-
-	local spawnName = spawnNames[zoneName]
-	if not spawnName then
+	local zoneData = Constants.ZONES[zoneName]
+	if not zoneData or not zoneData.SpawnName then
 		return nil
 	end
 
-	local spawn = Workspace:FindFirstChild(spawnName, true)
-	return spawn
+	return Workspace:FindFirstChild(zoneData.SpawnName, true)
 end
 
 -- Teleport player to a zone
@@ -57,78 +48,27 @@ function ZoneManager:TeleportToZone(player, zoneName)
 
 	local character = player.Character
 	if not character then
-		warn("Character not found for", player.Name)
 		return false
 	end
 
 	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 	if not humanoidRootPart then
-		warn("HumanoidRootPart not found for", player.Name)
 		return false
 	end
 
-	-- Teleport the character
-	local spawnCFrame = zone.SpawnLocation.CFrame
-	humanoidRootPart.CFrame = spawnCFrame + Vector3.new(0, 3, 0) -- Spawn slightly above
+	-- Teleport the character (slightly above the spawn pad)
+	humanoidRootPart.CFrame = zone.SpawnLocation.CFrame + Vector3.new(0, 3, 0)
 
-	-- Remove any ForceField that gets created during teleport (non-blocking)
+	-- Remove any ForceField created during teleport (non-blocking)
 	task.spawn(function()
-		task.wait(0.1) -- Wait for ForceField to be created
+		task.wait(0.1)
 		local forceField = character:FindFirstChildOfClass("ForceField")
 		if forceField then
 			forceField:Destroy()
 		end
 	end)
 
-	print(player.Name, "teleported to", zone.Name)
-
 	return true
-end
-
--- Get list of all zones (for UI)
-function ZoneManager:GetZonesList()
-	local zonesList = {}
-
-	for zoneName, zoneData in pairs(ZONES) do
-		table.insert(zonesList, {
-			Id = zoneName,
-			Name = zoneData.Name,
-			Description = zoneData.Description,
-		})
-	end
-
-	return zonesList
-end
-
--- Get current zone of a player
-function ZoneManager:GetPlayerZone(player)
-	local character = player.Character
-	if not character then
-		return nil
-	end
-
-	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-	if not humanoidRootPart then
-		return nil
-	end
-
-	local playerPosition = humanoidRootPart.Position
-
-	-- Find which zone the player is in based on proximity
-	local closestZone = nil
-	local closestDistance = math.huge
-
-	for zoneName, zoneData in pairs(ZONES) do
-		if zoneData.SpawnLocation then
-			local distance = (playerPosition - zoneData.SpawnLocation.Position).Magnitude
-			if distance < closestDistance then
-				closestDistance = distance
-				closestZone = zoneName
-			end
-		end
-	end
-
-	return closestZone
 end
 
 -- Initialize the manager
@@ -148,9 +88,8 @@ function ZoneManager:Init()
 		local spawn = findSpawnLocation(zoneName)
 		if spawn then
 			zoneData.SpawnLocation = spawn
-			print("Found spawn location for", zoneName)
 		else
-			warn("Spawn location not found for", zoneName, "- run WorldBuilder to create it")
+			warn("Spawn location not found for", zoneName, "- WorldBuilder should have created it")
 		end
 	end
 
@@ -161,8 +100,7 @@ function ZoneManager:Init()
 
 	-- Spawn players at Hub when they join
 	Players.PlayerAdded:Connect(function(player)
-		player.CharacterAdded:Connect(function(character)
-			-- Teleport immediately, no wait
+		player.CharacterAdded:Connect(function()
 			self:TeleportToZone(player, "Hub")
 		end)
 	end)
