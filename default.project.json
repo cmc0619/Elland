@@ -50,6 +50,9 @@
       "FamilyBuilder": {
         "$path": "src/ServerScriptService/FamilyBuilder.lua"
       },
+      "PetManager": {
+        "$path": "src/ServerScriptService/PetManager.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }
@@ -80,6 +83,12 @@
         },
         "FashionUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/FashionUI.lua"
+        },
+        "PetUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/PetUI.lua"
+        },
+        "PetFollow": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/PetFollow.client.lua"
         },
         "BuildToolClient": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/BuildToolClient.client.lua"

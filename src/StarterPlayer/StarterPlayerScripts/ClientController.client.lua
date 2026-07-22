@@ -19,6 +19,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 local WordleUI = require(script.Parent:WaitForChild("WordleUI"))
 local ZoneMenuUI = require(script.Parent:WaitForChild("ZoneMenuUI"))
 local FashionUI = require(script.Parent:WaitForChild("FashionUI"))
+local PetUI = require(script.Parent:WaitForChild("PetUI"))
 
 -- Create the ClientController table
 local ClientController = {}
@@ -400,6 +401,14 @@ function ClientController:Init()
 				FashionUI:Open(ownedItems, currency)
 			end
 		end)
+	end
+
+	-- Pet Corner adoption UI (listens for OpenPetUI internally)
+	local petSuccess, petError = pcall(function()
+		PetUI:Init()
+	end)
+	if not petSuccess then
+		warn("PetUI init failed:", petError)
 	end
 
 	-- Listen for world-event notifications (e.g. Nutcracker Plaza tree)

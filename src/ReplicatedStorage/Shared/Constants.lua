@@ -8,7 +8,7 @@ local Constants = {}
 
 -- Game Info
 Constants.GAME_NAME = "Elland"
-Constants.VERSION = "0.2.0"
+Constants.VERSION = "0.3.0"
 
 -- Currency
 Constants.CURRENCY_NAME = "Coins"
@@ -159,6 +159,30 @@ Constants.FASHION = {
 		{ Id = "DenimJacket", Name = "Denim Jacket", Cost = 75, Description = "Classic and cool" },
 		{ Id = "FlowerCrown", Name = "Flower Crown", Cost = 80, Description = "Picked fresh from the meadow" },
 		{ Id = "RainbowCape", Name = "Rainbow Cape", Cost = 100, Description = "For the hero of Elland" },
+	},
+}
+
+-- Pet Corner Settings
+-- Adoptable pets. PetManager builds its server-side price catalog from LIST
+-- (the client never sets prices), PetUI renders the adoption list from it,
+-- and ownership is saved in player data (Pets / ActivePet).
+Constants.PETS = {
+	POSITION = Vector3.new(50, 10, 100), -- Fenced pen between the Hub and the soccer pitch (clear of the river)
+	FENCE_HALF_SIZE = 12, -- Square pen; studs from center to each fence line
+	FOLLOW_OFFSET = Vector3.new(2.5, 0, 3.5), -- Behind and beside the character (local to HumanoidRootPart)
+	FOLLOW_HEIGHT = 1.4, -- Hover height above the follow point
+	FOLLOW_SPEED = 8, -- Client lerp speed; higher = snappier follow
+	BOB_AMPLITUDE = 0.35, -- Gentle hover bob
+	BOB_PERIOD = 2, -- Seconds per bob cycle
+	LIST = {
+		{ Id = "Puppy", Name = "Puppy", Cost = 60, Description = "A bouncy best friend",
+			BodyColor = Color3.fromRGB(214, 170, 118), AccentColor = Color3.fromRGB(150, 105, 60) },
+		{ Id = "Kitten", Name = "Kitten", Cost = 70, Description = "Soft paws, big curiosity",
+			BodyColor = Color3.fromRGB(175, 175, 185), AccentColor = Color3.fromRGB(255, 150, 170) },
+		{ Id = "Bunny", Name = "Bunny", Cost = 80, Description = "Hop hop hooray!",
+			BodyColor = Color3.fromRGB(245, 240, 255), AccentColor = Color3.fromRGB(255, 170, 200) },
+		{ Id = "Axolotl", Name = "Axolotl", Cost = 100, Description = "The smiliest swimmer in Elland",
+			BodyColor = Color3.fromRGB(255, 185, 205), AccentColor = Color3.fromRGB(255, 120, 150) },
 	},
 }
 

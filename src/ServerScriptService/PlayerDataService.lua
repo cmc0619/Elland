@@ -20,10 +20,20 @@ local PlayerDataStore = DataStoreService:GetDataStore("PlayerData_v1")
 
 -- Default player data structure.
 -- LastPlayed is set at data-creation time (not at module load).
+-- mergeData on load adds any new fields here to existing saves, so adding
+-- a field below is always migration-safe.
 local DEFAULT_DATA = {
 	Currency = Constants.STARTING_CURRENCY, -- 100
 	Level = 1,
 	Experience = 0,
+	-- Pet Corner: adopted pet IDs and the pet currently following the player
+	Pets = {},
+	ActivePet = nil,
+	-- Ella's Bake Shop: recipes the player has baked
+	BakeryItems = {},
+	-- Music Note Hunt: collected note indexes + completion flag
+	HuntNotes = {},
+	HuntCompleted = false,
 	Zones = {
 		WordleLibrary = {
 			Completed = {},
