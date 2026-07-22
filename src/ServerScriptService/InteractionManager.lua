@@ -8,6 +8,8 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InteractionManager = {}
+InteractionManager.PlayerDataService = nil
+InteractionManager.CurrencyManager = nil
 
 -- Helper: create a glowing interaction part with a ProximityPrompt
 local function createInteractionPart(name, position, color, lightColor, actionText, objectText)
@@ -89,15 +91,27 @@ function InteractionManager:CreateFashionPrompt()
 		getWorldPosition(boutique) + Vector3.new(0, 4, -20),
 		BrickColor.new("Hot pink"),
 		Color3.fromRGB(255, 150, 200),
-		"Design Outfits (Coming Soon)",
+		"Open Shop",
 		"Fashion Boutique"
 	)
 
 	prompt.Triggered:Connect(function(player)
-		-- NOT YET IMPLEMENTED: Fashion outfit designer UI.
-		-- Intended behavior: open an outfit design interface and award
-		-- currency for creations (see Constants.FASHION). Stub for now.
-		print(player.Name, "used the Fashion Boutique (fashion designer not yet implemented)")
+		-- Open the fashion shop UI, sending the player's current inventory
+		-- and balance so the UI can render Owned states immediately.
+		local openFashion = ReplicatedStorage:FindFirstChild("OpenFashionUI")
+		if not openFashion then
+			warn("OpenFashionUI RemoteEvent not found!")
+			return
+		end
+
+		local ownedItems = {}
+		local currency = 0
+		if self.CurrencyManager then
+			ownedItems = self.CurrencyManager:GetOwnedItems(player)
+			currency = self.CurrencyManager:GetCurrency(player)
+		end
+
+		openFashion:FireClient(player, ownedItems, currency)
 	end)
 
 	print("Fashion interaction created")
@@ -161,11 +175,18 @@ function InteractionManager:MakeSwingInteractive()
 end
 
 -- Initialize all interactions
-function InteractionManager:Init()
+function InteractionManager:Init(playerDataService, currencyManager)
+	self.PlayerDataService = playerDataService
+	self.CurrencyManager = currencyManager
+
 	-- Create RemoteEvents upfront (so clients can connect to them)
 	local openWordle = Instance.new("RemoteEvent")
 	openWordle.Name = "OpenWordleUI"
 	openWordle.Parent = ReplicatedStorage
+
+	local openFashion = Instance.new("RemoteEvent")
+	openFashion.Name = "OpenFashionUI"
+	openFashion.Parent = ReplicatedStorage
 
 	-- Wait for WorldBuilder to finish deterministically instead of a fixed
 	-- task.wait(2) race. BuildWorld() sets Workspace WorldBuilt = true.

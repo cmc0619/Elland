@@ -50,6 +50,9 @@
         },
         "ZoneMenuUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/ZoneMenuUI.lua"
+        },
+        "FashionUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/FashionUI.lua"
         }
       }
     },

@@ -85,9 +85,9 @@ Constants.WORDLE = {
 	WORD_LENGTH = 5,
 	MAX_ATTEMPTS = 6,
 	DAILY_REWARD = 50,
-	-- Vendored word list: the daily answer is picked from this list and it
-	-- is also the set of accepted guesses. 5-letter words appropriate for
-	-- 11-13 year olds. (No external API dependency.)
+	-- Vendored word list: used as the offline fallback for the daily word
+	-- (when the Random Words API is unreachable) and as the set of accepted
+	-- guesses. 5-letter words appropriate for 11-13 year olds.
 	WORDS = {
 		"ABOUT", "APPLE", "BEACH", "BRAVE", "BREAD", "BRICK", "BRING",
 		"CANDY", "CHAIR", "CHARM", "CLOUD", "CREEK", "DANCE", "DREAM",
@@ -105,10 +105,18 @@ Constants.WORDLE = {
 
 -- Fashion Boutique Settings
 Constants.FASHION = {
-	MAX_OUTFIT_SLOTS = 10,
-	MAX_ITEMS_PER_OUTFIT = 8,
-	SHOWCASE_DURATION = 30,
-	CLOTHING_CATEGORIES = {"Tops", "Bottoms", "Shoes", "Accessories", "Hair"},
+	-- Purchasable cosmetic items. This table is the single source of truth:
+	-- CurrencyManager builds its server-side price catalog from it and the
+	-- client FashionUI renders the shop from it. Buying records ownership in
+	-- the player's saved data (Zones.FashionBoutique.OwnedItems).
+	ITEMS = {
+		{ Id = "FreshSneakers", Name = "Fresh Sneakers", Cost = 40, Description = "Comfy kicks for exploring Elland" },
+		{ Id = "SparkleHat", Name = "Sparkle Hat", Cost = 50, Description = "A hat that catches the sunlight" },
+		{ Id = "StarGlasses", Name = "Star Glasses", Cost = 60, Description = "See the world like a star" },
+		{ Id = "DenimJacket", Name = "Denim Jacket", Cost = 75, Description = "Classic and cool" },
+		{ Id = "FlowerCrown", Name = "Flower Crown", Cost = 80, Description = "Picked fresh from the meadow" },
+		{ Id = "RainbowCape", Name = "Rainbow Cape", Cost = 100, Description = "For the hero of Elland" },
+	},
 }
 
 -- Building Area Settings

@@ -37,7 +37,7 @@ print("Initializing WordleManager...")
 WordleManager:Init(PlayerDataService, CurrencyManager)
 
 print("Initializing InteractionManager...")
-InteractionManager:Init()
+InteractionManager:Init(PlayerDataService, CurrencyManager)
 
 print("======================")
 print("Elland Server Ready!")

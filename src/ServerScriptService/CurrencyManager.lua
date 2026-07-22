@@ -2,10 +2,18 @@
 	CurrencyManager
 	Handles all currency transactions across the game
 	Unified economy system shared across all zones
+
+	Purchases: the client fires PurchaseRequest with an item ID only. The
+	price is looked up server-side in ITEM_CATALOG (built from
+	Constants.FASHION.ITEMS), the player is charged, the item is granted
+	into PlayerDataService (Zones.FashionBoutique.OwnedItems), and the
+	result is reported back to that client via PurchaseResult.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Constants = require(ReplicatedStorage.Shared.Constants)
 
 local CurrencyManager = {}
 CurrencyManager.PlayerDataService = nil
@@ -15,11 +23,14 @@ local CurrencyChanged = Instance.new("RemoteEvent")
 CurrencyChanged.Name = "CurrencyChanged"
 CurrencyChanged.Parent = ReplicatedStorage
 
--- Reserved for a future purchase UI: no client fires this yet, but the
--- server handler below is already wired up and price-checked server-side.
 local PurchaseRequest = Instance.new("RemoteEvent")
 PurchaseRequest.Name = "PurchaseRequest"
 PurchaseRequest.Parent = ReplicatedStorage
+
+-- Reports the outcome of a PurchaseRequest back to the requesting client
+local PurchaseResult = Instance.new("RemoteEvent")
+PurchaseResult.Name = "PurchaseResult"
+PurchaseResult.Parent = ReplicatedStorage
 
 -- Currency rewards configuration (keyed by Constants.ZONES names)
 local CURRENCY_REWARDS = {
@@ -38,18 +49,13 @@ local CURRENCY_REWARDS = {
 	},
 }
 
--- Server-side item price catalog. PurchaseRequest ignores any cost sent
--- by the client and only trusts prices defined here.
-local ITEM_CATALOG = {
-	-- Fashion Boutique items
-	FashionHat = 50,
-	FashionShirt = 75,
-	FashionPants = 75,
-	FashionAccessory = 100,
-	-- Building Area blueprints
-	BuildBlueprintSmall = 25,
-	BuildBlueprintLarge = 100,
-}
+-- Server-side item price catalog, built from Constants.FASHION.ITEMS so
+-- item definitions have a single source of truth. PurchaseRequest
+-- ignores any cost sent by the client and only trusts prices here.
+local ITEM_CATALOG = {}
+for _, item in ipairs(Constants.FASHION.ITEMS) do
+	ITEM_CATALOG[item.Id] = item.Cost
+end
 
 -- Get player's current currency
 function CurrencyManager:GetCurrency(player)
@@ -131,6 +137,25 @@ function CurrencyManager:CanAfford(player, amount)
 	return self:GetCurrency(player) >= amount
 end
 
+-- Get the list of item IDs the player owns (Fashion Boutique inventory)
+function CurrencyManager:GetOwnedItems(player)
+	if not self.PlayerDataService then
+		return {}
+	end
+
+	local data = self.PlayerDataService:GetData(player)
+	if not data or not data.Zones or not data.Zones.FashionBoutique then
+		return {}
+	end
+
+	return data.Zones.FashionBoutique.OwnedItems or {}
+end
+
+-- Check if the player already owns an item
+function CurrencyManager:PlayerOwnsItem(player, itemId)
+	return table.find(self:GetOwnedItems(player), itemId) ~= nil
+end
+
 -- Award currency for activity completion
 function CurrencyManager:AwardActivity(player, zone, activity)
 	if not CURRENCY_REWARDS[zone] then
@@ -151,18 +176,53 @@ end
 
 -- Handle purchase requests from client. The client only identifies the
 -- item; the price is always looked up server-side in ITEM_CATALOG.
+-- Validates, charges, grants the item into player data, and reports the
+-- outcome to the client via PurchaseResult.
 function CurrencyManager:HandlePurchaseRequest(player, itemId)
+	local function fail(message)
+		PurchaseResult:FireClient(player, {
+			success = false,
+			itemId = itemId,
+			error = message,
+		})
+		return false
+	end
+
+	if type(itemId) ~= "string" then
+		return fail("Invalid item")
+	end
+
 	local cost = ITEM_CATALOG[itemId]
 	if not cost then
 		warn("CurrencyManager: Unknown item", itemId, "requested by", player.Name)
-		return false
+		return fail("Unknown item")
+	end
+
+	-- Prevent buying the same item twice
+	if self:PlayerOwnsItem(player, itemId) then
+		return fail("Already owned")
 	end
 
 	if not self:CanAfford(player, cost) then
-		return false
+		return fail("Not enough " .. Constants.CURRENCY_NAME)
 	end
 
-	return self:RemoveCurrency(player, cost, "Purchase: " .. itemId)
+	if not self:RemoveCurrency(player, cost, "Purchase: " .. itemId) then
+		return fail("Purchase failed")
+	end
+
+	-- Grant the item into saved player data
+	local owned = self:GetOwnedItems(player)
+	table.insert(owned, itemId)
+	self.PlayerDataService:UpdateData(player, "Zones.FashionBoutique.OwnedItems", owned)
+
+	PurchaseResult:FireClient(player, {
+		success = true,
+		itemId = itemId,
+		cost = cost,
+	})
+
+	return true
 end
 
 -- Initialize the manager
@@ -172,7 +232,6 @@ function CurrencyManager:Init(playerDataService)
 	-- Handle purchase requests (itemId only; client-sent cost is ignored)
 	PurchaseRequest.OnServerEvent:Connect(function(player, itemId)
 		self:HandlePurchaseRequest(player, itemId)
-		-- Item granting itself belongs to the system that owns the item
 	end)
 
 	-- Notify players of their currency once their data is loaded
