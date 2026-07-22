@@ -18,6 +18,7 @@ local WordleManager = require(ServerScriptService.WordleManager)
 local WorldBuilder = require(ServerScriptService.WorldBuilder)
 local PolishBuilder = require(ServerScriptService.PolishBuilder)
 local NatureBuilder = require(ServerScriptService.NatureBuilder)
+local BuildingSandbox = require(ServerScriptService.BuildingSandbox)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
@@ -37,6 +38,10 @@ PolishBuilder:Build()
 
 print("Scattering nature...")
 NatureBuilder:Build()
+
+-- Building sandbox needs the build platform from WorldBuilder
+print("Initializing BuildingSandbox...")
+BuildingSandbox:Init()
 
 -- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")

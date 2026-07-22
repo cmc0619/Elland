@@ -32,6 +32,9 @@
       "NatureBuilder": {
         "$path": "src/ServerScriptService/NatureBuilder.lua"
       },
+      "BuildingSandbox": {
+        "$path": "src/ServerScriptService/BuildingSandbox.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }
@@ -62,6 +65,9 @@
         },
         "FashionUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/FashionUI.lua"
+        },
+        "BuildToolClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/BuildToolClient.client.lua"
         }
       }
     },

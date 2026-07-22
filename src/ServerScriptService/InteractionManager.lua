@@ -117,33 +117,6 @@ function InteractionManager:CreateFashionPrompt()
 	print("Fashion interaction created")
 end
 
--- Create Building Area prompt
-function InteractionManager:CreateBuildingPrompt()
-	local platform = Workspace:FindFirstChild("BuildingPlatform", true)
-	if not platform then
-		warn("Building Platform not found")
-		return
-	end
-
-	local _, prompt = createInteractionPart(
-		"BuildingInteraction",
-		getWorldPosition(platform) + Vector3.new(0, 4, 30),
-		BrickColor.new("Bright yellow"),
-		Color3.fromRGB(255, 200, 100),
-		"Start Building (Coming Soon)",
-		"Building Area"
-	)
-
-	prompt.Triggered:Connect(function(player)
-		-- NOT YET IMPLEMENTED: Building tools.
-		-- Intended behavior: give the player a part-placement tool and save
-		-- their builds (see Constants.BUILDING). Stub for now.
-		print(player.Name, "used the Building Area (building tools not yet implemented)")
-	end)
-
-	print("Building interaction created")
-end
-
 -- Make swing interactive
 function InteractionManager:MakeSwingInteractive()
 	local tree = Workspace:FindFirstChild("WishingTree", true)
@@ -165,11 +138,6 @@ function InteractionManager:MakeSwingInteractive()
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 10
 	prompt.Parent = seat
-
-	prompt.Triggered:Connect(function(player)
-		-- The Seat handles sitting automatically
-		print(player.Name, "sat on the swing")
-	end)
 
 	print("Swing made interactive")
 end
@@ -196,7 +164,6 @@ function InteractionManager:Init(playerDataService, currencyManager)
 
 	self:CreateWordlePrompt()
 	self:CreateFashionPrompt()
-	self:CreateBuildingPrompt()
 	self:MakeSwingInteractive()
 
 	print("InteractionManager initialized")
