@@ -1,26 +1,30 @@
 --[[
 	AlgebraManager
 	Algebra Academy: a little schoolhouse between the Hub and the Wordle
-	Library (chalkboard, desks, sign) with a "Linear Lab" practice game.
+	Library (chalkboard, desks, sign) with a "Linear Lab" practice game
+	and the Graphing Easel.
 
-	LINEAR ONLY, by construction: the question generators below build
-	problems from slope-intercept pieces (m, b, points) - there is no
-	quadratic generator at all, so a quadratic can never appear.
-
+	LINEAR LAB - LINEAR ONLY, by construction: the question generators
+	build problems from slope-intercept pieces (m, b, points) - there is
+	no quadratic generator at all, so a quadratic can never appear.
 	Question types (clean integer answers, 4 multiple-choice options with
 	plausible distractors - sign flips, off-by-one, b/m swaps):
 	  1. Solve for x:        ax + b = c
 	  2. Find the slope      from two points on y = mx + b
 	  3. Evaluate            y = mx + b for a given x
 	  4. Find the y-intercept of a line through a point with slope m
-
-	Flow: the "Linear Lab" prompt fires OpenAlgebraUI; the client answers
-	via AlgebraStartRequest -> AlgebraSession (5 server-generated
-	questions, correct index known ONLY to the server) -> AlgebraAnswer
-	(choice index) -> AlgebraAnswerResult per question. +2 Coins per
+	Flow: OpenAlgebraUI -> AlgebraStartRequest -> AlgebraSession (5
+	server-generated questions, correct index known ONLY to the server) ->
+	AlgebraAnswer (choice index) -> AlgebraAnswerResult. +2 Coins per
 	correct answer (session cap 10, 5-minute per-player cooldown).
-	AlgebraStats = { Sessions, Correct, BestStreak } persist in player
-	data (migration-safe defaults).
+	AlgebraStats = { Sessions, Correct, BestStreak } persist.
+
+	GRAPHING EASEL: the "Graph an equation" prompt fires OpenGraphUI; the
+	client parses and renders locally with the shared EquationParser
+	module (linear AND quadratic are both OK to graph - only the practice
+	problems exclude quadratics). The first successful graph per session
+	pays +2 Coins via GraphBonusRequest, which the server validates by
+	re-parsing with the same shared module (5-minute cooldown).
 ]]
 
 local Players = game:GetService("Players")
@@ -28,6 +32,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local EquationParser = require(ReplicatedStorage.Shared.EquationParser)
 
 local AlgebraManager = {}
 AlgebraManager.PlayerDataService = nil
@@ -54,6 +59,14 @@ local AlgebraAnswerResult = Instance.new("RemoteEvent")
 AlgebraAnswerResult.Name = "AlgebraAnswerResult"
 AlgebraAnswerResult.Parent = ReplicatedStorage
 
+local OpenGraphUI = Instance.new("RemoteEvent")
+OpenGraphUI.Name = "OpenGraphUI"
+OpenGraphUI.Parent = ReplicatedStorage
+
+local GraphBonusRequest = Instance.new("RemoteEvent")
+GraphBonusRequest.Name = "GraphBonusRequest"
+GraphBonusRequest.Parent = ReplicatedStorage
+
 -- Shared one-line notification channel (ClientController shows the toast)
 local NotifyPlayer = ReplicatedStorage:FindFirstChild("NotifyPlayer")
 if not NotifyPlayer then
@@ -68,7 +81,8 @@ local GROUND_LEVEL = Constants.WORLD.GROUND_LEVEL
 -- [UserId] = session table: { questions, current, streak, bestStreak,
 --   correct, coins, startedAt }
 local activeSessions = {}
-local lastSessionTime = {} -- [UserId] = os.time() (cooldown)
+local lastSessionTime = {} -- [UserId] = os.time() (Linear Lab cooldown)
+local lastGraphBonusTime = {} -- [UserId] = os.time() (graph bonus cooldown)
 
 local rng = Random.new()
 
@@ -200,7 +214,7 @@ local function generateQuestions(count)
 end
 
 --------------------------------------------------------------------------------
--- Schoolhouse structure
+-- Schoolhouse + easel structures
 --------------------------------------------------------------------------------
 
 local function createPart(parent, name, size, cframe, color, material, canCollide)
@@ -234,6 +248,69 @@ local function buildDesk(parent, position)
 	seat.Material = Enum.Material.Wood
 	seat.TopSurface = Enum.SurfaceType.Smooth
 	seat.Parent = parent
+end
+
+-- The Graphing Easel: two legs, a tray, and a big graph-paper board whose
+-- SurfaceGui (GraphPaperGui > GraphArea) the client draws grids/graphs on
+function AlgebraManager:BuildEasel(school, baseTop)
+	local center = ALGEBRA.POSITION
+	local easelX = center.X + 16
+	local easelZ = center.Z - 6
+
+	-- A-frame legs
+	for _, xSign in ipairs({ -1, 1 }) do
+		createPart(school, "EaselLeg", Vector3.new(0.5, 14, 0.5),
+			CFrame.new(easelX + xSign * 4.5, baseTop + 6.5, easelZ + 1)
+				* CFrame.Angles(math.rad(-8), 0, xSign * math.rad(-12)),
+			Color3.fromRGB(150, 105, 60), Enum.Material.Wood)
+	end
+	-- Cross tray the board rests on
+	createPart(school, "EaselTray", Vector3.new(11, 0.6, 1.2),
+		CFrame.new(easelX, baseTop + 2.2, easelZ),
+		Color3.fromRGB(150, 105, 60), Enum.Material.Wood)
+
+	-- Graph-paper board (faces the schoolhouse front, -Z)
+	local board = createPart(school, "GraphBoard", Vector3.new(10, 10, 0.4),
+		CFrame.new(easelX, baseTop + 7.6, easelZ),
+		Color3.fromRGB(250, 250, 248), Enum.Material.SmoothPlastic, false)
+
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "GraphPaperGui"
+	gui.Face = Enum.NormalId.Front
+	gui.PixelsPerStud = 40
+	gui.Parent = board
+
+	-- The client draws GridLayer + GraphLayer inside this area
+	local area = Instance.new("Frame")
+	area.Name = "GraphArea"
+	area.Size = UDim2.new(1, 0, 1, 0)
+	area.BackgroundColor3 = Color3.fromRGB(250, 250, 248)
+	area.BorderSizePixel = 0
+	area.Parent = gui
+
+	-- Prompt at the easel
+	local promptPart = Instance.new("Part")
+	promptPart.Name = "EaselInteraction"
+	promptPart.Size = Vector3.new(4, 4, 4)
+	promptPart.Shape = Enum.PartType.Ball
+	promptPart.Position = Vector3.new(easelX, baseTop + 2, easelZ - 3)
+	promptPart.Anchored = true
+	promptPart.CanCollide = false
+	promptPart.Transparency = 0.5
+	promptPart.Color = Color3.fromRGB(255, 170, 120)
+	promptPart.Material = Enum.Material.Neon
+	promptPart.Parent = school
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Graph an equation"
+	prompt.ObjectText = "Graphing Easel"
+	prompt.HoldDuration = 0.5
+	prompt.MaxActivationDistance = 14
+	prompt.Parent = promptPart
+
+	prompt.Triggered:Connect(function(player)
+		OpenGraphUI:FireClient(player)
+	end)
 end
 
 function AlgebraManager:BuildSchool()
@@ -343,11 +420,14 @@ function AlgebraManager:BuildSchool()
 		OpenAlgebraUI:FireClient(player)
 	end)
 
-	print("AlgebraManager: Algebra Academy built")
+	-- The Graphing Easel beside the schoolhouse
+	self:BuildEasel(school, baseTop)
+
+	print("AlgebraManager: Algebra Academy built (schoolhouse + graphing easel)")
 end
 
 --------------------------------------------------------------------------------
--- Session flow (server generates AND validates; the client sends only indexes)
+-- Linear Lab session flow (server generates AND validates; client sends indexes)
 --------------------------------------------------------------------------------
 
 function AlgebraManager:HandleStartRequest(player)
@@ -478,6 +558,30 @@ function AlgebraManager:HandleAnswer(player, choiceIndex)
 	end
 end
 
+--------------------------------------------------------------------------------
+-- Graphing Easel bonus: re-parse server-side, then pay once per cooldown
+--------------------------------------------------------------------------------
+
+function AlgebraManager:HandleGraphBonus(player, equationText)
+	-- Never trust the client's "I graphed something valid" - re-parse it
+	local parsed = EquationParser.Parse(equationText)
+	if not parsed then
+		return
+	end
+
+	local now = os.time()
+	local last = lastGraphBonusTime[player.UserId] or 0
+	if now - last < ALGEBRA.GRAPH_BONUS_COOLDOWN then
+		return -- Cooldowns are silent: the graph still draws, just no payout
+	end
+	lastGraphBonusTime[player.UserId] = now
+
+	if self.CurrencyManager then
+		self.CurrencyManager:AddCurrency(player, ALGEBRA.GRAPH_BONUS, "First graph of the visit")
+	end
+	NotifyPlayer:FireClient(player, "Beautiful graph! +" .. ALGEBRA.GRAPH_BONUS .. " " .. Constants.CURRENCY_NAME)
+end
+
 function AlgebraManager:Init(playerDataService, currencyManager)
 	self.PlayerDataService = playerDataService
 	self.CurrencyManager = currencyManager
@@ -492,12 +596,17 @@ function AlgebraManager:Init(playerDataService, currencyManager)
 		self:HandleAnswer(player, choiceIndex)
 	end)
 
+	GraphBonusRequest.OnServerEvent:Connect(function(player, equationText)
+		self:HandleGraphBonus(player, equationText)
+	end)
+
 	Players.PlayerRemoving:Connect(function(player)
 		activeSessions[player.UserId] = nil
 		lastSessionTime[player.UserId] = nil
+		lastGraphBonusTime[player.UserId] = nil
 	end)
 
-	print("AlgebraManager initialized: Algebra Academy is open (linear only)")
+	print("AlgebraManager initialized: Algebra Academy is open (linear only + graphing easel)")
 end
 
 return AlgebraManager

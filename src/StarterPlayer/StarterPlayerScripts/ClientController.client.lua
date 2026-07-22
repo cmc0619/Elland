@@ -23,6 +23,7 @@ local PetUI = require(script.Parent:WaitForChild("PetUI"))
 local BakeShopUI = require(script.Parent:WaitForChild("BakeShopUI"))
 local TalentShowUI = require(script.Parent:WaitForChild("TalentShowUI"))
 local AlgebraUI = require(script.Parent:WaitForChild("AlgebraUI"))
+local GraphUI = require(script.Parent:WaitForChild("GraphUI"))
 
 -- Create the ClientController table
 local ClientController = {}
@@ -436,6 +437,14 @@ function ClientController:Init()
 	end)
 	if not algebraSuccess then
 		warn("AlgebraUI init failed:", algebraError)
+	end
+
+	-- Graphing Easel input panel (listens for OpenGraphUI internally)
+	local graphSuccess, graphError = pcall(function()
+		GraphUI:Init()
+	end)
+	if not graphSuccess then
+		warn("GraphUI init failed:", graphError)
 	end
 
 	-- Listen for world-event notifications (e.g. Nutcracker Plaza tree)

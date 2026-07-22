@@ -321,9 +321,9 @@ Constants.SEASONS = {
 -- Algebra Academy (run by AlgebraManager): a little schoolhouse between
 -- the Hub and the Wordle Library. The "Linear Lab" prompt starts a
 -- 5-question LINEAR-only practice session; questions are generated AND
--- validated server-side (the client only sends a choice index). Coins
--- are capped per session with a per-player cooldown, and AlgebraStats
--- persist in player data.
+-- validated server-side (the client only sends a choice index). The
+-- Graphing Easel beside it draws typed equations (linear AND quadratic)
+-- on its graph-paper board.
 Constants.ALGEBRA = {
 	POSITION = Vector3.new(-140, 10, 100), -- Clear of the river and the Hub->Library path
 	QUESTIONS_PER_SESSION = 5,
@@ -331,6 +331,8 @@ Constants.ALGEBRA = {
 	SESSION_COIN_CAP = 10, -- 5 correct answers x 2 Coins
 	SESSION_COOLDOWN = 300, -- 5 minutes between Linear Lab sessions per player
 	SESSION_TIMEOUT = 300, -- Abandoned sessions expire after this
+	GRAPH_BONUS = 2, -- First successful graph per visit
+	GRAPH_BONUS_COOLDOWN = 300, -- 5 minutes between graph bonuses per player
 	ENCOURAGEMENTS = {
 		"Slope superstar!",
 		"Brain power!",

@@ -79,6 +79,9 @@
         "$className": "Folder",
         "Constants": {
           "$path": "src/ReplicatedStorage/Shared/Constants.lua"
+        },
+        "EquationParser": {
+          "$path": "src/ReplicatedStorage/Shared/EquationParser.lua"
         }
       }
     },
@@ -110,6 +113,9 @@
         },
         "AlgebraUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/AlgebraUI.lua"
+        },
+        "GraphUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/GraphUI.lua"
         },
         "PetFollow": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/PetFollow.client.lua"
