@@ -143,6 +143,11 @@ function WorldBuilder:CreateEllasLookout()
 		Enum.Material.Grass
 	)
 
+	-- The top terrain layer is a 4-stud-thick cylinder CENTERED on hillTopY,
+	-- so the real walking surface sits 2 studs above hillTopY. Plant the tree
+	-- on the actual surface or the trunk ends up buried in the hilltop.
+	local surfaceY = hillTopY + 2
+
 	-- Create the tree ON TOP of the hill
 	local tree = Instance.new("Model")
 	tree.Name = "WishingTree"
@@ -151,7 +156,7 @@ function WorldBuilder:CreateEllasLookout()
 	local trunk = Instance.new("Part")
 	trunk.Name = "Trunk"
 	trunk.Size = Vector3.new(3, 15, 3)
-	trunk.Position = Vector3.new(hillCenterX, hillTopY + 7.5, hillCenterZ) -- Trunk base at hill top
+	trunk.Position = Vector3.new(hillCenterX, surfaceY + 7.5, hillCenterZ) -- Trunk base rests on the hilltop surface
 	trunk.Anchored = true
 	trunk.Material = Enum.Material.Wood
 	trunk.BrickColor = BrickColor.new("Brown")
@@ -162,8 +167,12 @@ function WorldBuilder:CreateEllasLookout()
 	foliage.Name = "Foliage"
 	foliage.Shape = Enum.PartType.Ball
 	foliage.Size = Vector3.new(20, 20, 20)
-	foliage.Position = Vector3.new(hillCenterX, hillTopY + 20, hillCenterZ) -- Above trunk
+	foliage.Position = Vector3.new(hillCenterX, surfaceY + 20, hillCenterZ) -- Above trunk
 	foliage.Anchored = true
+	-- Decorative canopy: the swing hangs just below it, and solid leaves
+	-- colliding with the seated player's head is what flipped sitters
+	-- upside down. NatureBuilder's trees are non-collidable for the same reason.
+	foliage.CanCollide = false
 	foliage.Material = Enum.Material.Grass
 	foliage.BrickColor = BrickColor.new("Dark green")
 	foliage.Parent = tree
@@ -171,8 +180,10 @@ function WorldBuilder:CreateEllasLookout()
 	-- Swing branch
 	local branch = Instance.new("Part")
 	branch.Name = "SwingBranch"
-	branch.Size = Vector3.new(12, 1, 1)
-	branch.Position = Vector3.new(hillCenterX + 5, hillTopY + 17, hillCenterZ) -- At foliage level
+	-- Swing branch, long enough to stick out past the foliage (radius 10) so
+	-- the swing hangs clear of the leaves instead of into them
+	branch.Size = Vector3.new(16, 1, 1)
+	branch.Position = Vector3.new(hillCenterX + 8, surfaceY + 17, hillCenterZ) -- At foliage level
 	branch.Anchored = true
 	branch.Material = Enum.Material.Wood
 	branch.BrickColor = BrickColor.new("Brown")
