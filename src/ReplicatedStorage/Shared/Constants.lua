@@ -141,8 +141,8 @@ Constants.WORDLE = {
 		"PEACH", "PIZZA", "PLANT", "QUEEN", "RIVER", "ROBOT", "SHINE",
 		"SMILE", "SNAKE", "SPARK", "STARS", "STORY", "SUNNY", "SWEET",
 		"SWIFT", "TABLE", "THINK", "TIGER", "TRAIL", "TRAIN", "TRUST",
-		"VOICE", "WATER", "WHALE", "WHEEL", "WINGS", "WORLD", "WRITE",
-		"YOUTH", "ZEBRA",
+		"VOICE", "WATER", "WHALE", "WHEEL", "WORLD", "WRITE", "YOUTH",
+		"ZEBRA",
 	},
 }
 
