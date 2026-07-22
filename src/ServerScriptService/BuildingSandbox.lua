@@ -57,13 +57,21 @@ local function getPlayerFolder(player)
 	return folder
 end
 
--- Snap a world position to the build grid, resting on the platform surface
+-- Snap a world position to the build grid. X/Z snap to the 2-stud grid;
+-- Y snaps to block-height layers above the platform surface so blocks can
+-- stack vertically when clicking on top of existing blocks.
 local function snapToGrid(position)
 	local _, platformTop = getPlotInfo()
 	local grid = SANDBOX.GRID_SIZE
+	local blockHeight = SANDBOX.BLOCK_SIZE.Y
 	local x = math.round(position.X / grid) * grid
 	local z = math.round(position.Z / grid) * grid
-	local y = platformTop + SANDBOX.BLOCK_SIZE.Y / 2
+	local layer = math.round((position.Y - platformTop) / blockHeight)
+	local y = platformTop + blockHeight / 2 + layer * blockHeight
+	-- Never below the platform surface, never above the max build height
+	local minY = platformTop + blockHeight / 2
+	local maxY = platformTop + (SANDBOX.MAX_BUILD_HEIGHT or 40) - blockHeight / 2
+	y = math.clamp(y, minY, maxY)
 	return Vector3.new(x, y, z)
 end
 

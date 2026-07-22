@@ -141,8 +141,8 @@ Constants.WORDLE = {
 		"PEACH", "PIZZA", "PLANT", "QUEEN", "RIVER", "ROBOT", "SHINE",
 		"SMILE", "SNAKE", "SPARK", "STARS", "STORY", "SUNNY", "SWEET",
 		"SWIFT", "TABLE", "THINK", "TIGER", "TRAIL", "TRAIN", "TRUST",
-		"VOICE", "WATER", "WHALE", "WHEEL", "WORLD", "WRITE", "YOUTH",
-		"ZEBRA",
+		"VOICE", "WATER", "WHALE", "WHEEL", "WINGS", "WORLD", "WRITE",
+		"YOUTH", "ZEBRA",
 	},
 }
 
@@ -178,6 +178,7 @@ Constants.BUILDING_SANDBOX = {
 	MAX_BLOCKS_PER_PLAYER = 200,
 	PLACE_COOLDOWN = 0.15, -- Seconds between placements (rate limit)
 	PLOT_HALF_SIZE = 38, -- Platform is 80 wide; keep blocks 2 studs from the edge
+	MAX_BUILD_HEIGHT = 40, -- Blocks can stack up to 40 studs above the platform
 	PASTEL_COLORS = {
 		Color3.fromRGB(255, 179, 186), -- Pastel pink
 		Color3.fromRGB(255, 223, 186), -- Pastel peach

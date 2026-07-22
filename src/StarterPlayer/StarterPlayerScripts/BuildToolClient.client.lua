@@ -30,6 +30,13 @@ local function hookTool(tool)
 		return
 	end
 
+	-- The tool moves Backpack <-> Character on equip/unequip; hook each
+	-- instance exactly once so Activated doesn't fire multiple times per click.
+	if tool:GetAttribute("Hooked") then
+		return
+	end
+	tool:SetAttribute("Hooked", true)
+
 	tool.Equipped:Connect(function()
 		toolEquipped = true
 	end)
@@ -39,12 +46,14 @@ local function hookTool(tool)
 	end)
 
 	tool.Activated:Connect(function()
-		-- mouse.Hit is valid while the tool is equipped
+		-- mouse.Hit is valid while the tool is equipped; send the full 3D
+		-- hit position so the server can stack blocks vertically
 		BuildPlaceRequest:FireServer(mouse.Hit.Position)
 	end)
 end
 
--- Watch backpack and character for the tool
+-- Watch backpack and character for the tool, including tools already
+-- present when this script starts
 local function watchContainer(container)
 	for _, child in ipairs(container:GetChildren()) do
 		if child:IsA("Tool") then
