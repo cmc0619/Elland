@@ -20,6 +20,7 @@ local WordleUI = require(script.Parent:WaitForChild("WordleUI"))
 local ZoneMenuUI = require(script.Parent:WaitForChild("ZoneMenuUI"))
 local FashionUI = require(script.Parent:WaitForChild("FashionUI"))
 local PetUI = require(script.Parent:WaitForChild("PetUI"))
+local BakeShopUI = require(script.Parent:WaitForChild("BakeShopUI"))
 
 -- Create the ClientController table
 local ClientController = {}
@@ -409,6 +410,14 @@ function ClientController:Init()
 	end)
 	if not petSuccess then
 		warn("PetUI init failed:", petError)
+	end
+
+	-- Ella's Bake Shop menu + baking minigame (listens for OpenBakeryUI)
+	local bakerySuccess, bakeryError = pcall(function()
+		BakeShopUI:Init()
+	end)
+	if not bakerySuccess then
+		warn("BakeShopUI init failed:", bakeryError)
 	end
 
 	-- Listen for world-event notifications (e.g. Nutcracker Plaza tree)

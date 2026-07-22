@@ -186,6 +186,28 @@ Constants.PETS = {
 	},
 }
 
+-- Ella's Bake Shop Settings
+-- Family recipes. BakeryManager builds its server-side catalog from ITEMS
+-- (the client never sets prices) and BakeShopUI renders the menu from it.
+-- Baking is a timed activity: the server validates the start and the
+-- completion timing, then records the baked good in BakeryItems.
+Constants.BAKERY = {
+	POSITION = Vector3.new(180, 10, -70), -- Beside Ella's House, well clear of the river
+	ITEMS = {
+		{ Id = "Cupcake", Name = "Cupcake", Cost = 10, Description = "Grandma's vanilla swirl" },
+		{ Id = "Cookies", Name = "Cookies", Cost = 12, Description = "Warm chocolate chip, extra chips" },
+		{ Id = "Brownie", Name = "Brownie", Cost = 15, Description = "Fudgy squares of happiness" },
+		{ Id = "CinnamonRoll", Name = "Cinnamon Roll", Cost = 18, Description = "Sunday morning classic" },
+		{ Id = "Pie", Name = "Pie", Cost = 25, Description = "Apple pie with a lattice top" },
+		{ Id = "BirthdayCake", Name = "Birthday Cake", Cost = 40, Description = "Three layers, all the sprinkles" },
+	},
+	BAKE_DURATION = 6, -- Seconds the minigame runs
+	MIN_COMPLETION_TIME = 4, -- Server sanity: a bake can't finish faster than this
+	PERFECT_BONUS = 5, -- Coin bonus for clicking every step in time
+	PERFECT_COOLDOWN = 120, -- Seconds between perfect-bake bonuses per player
+	STEPS = { "Stir!", "Add sprinkles!", "Frost!" }, -- One timed button per step
+}
+
 -- Building Area Settings (legacy saved-build config; kept for future persistence)
 Constants.BUILDING = {
 	MAX_BUILDS = 20,

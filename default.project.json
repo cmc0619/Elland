@@ -53,6 +53,9 @@
       "PetManager": {
         "$path": "src/ServerScriptService/PetManager.lua"
       },
+      "BakeryManager": {
+        "$path": "src/ServerScriptService/BakeryManager.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }
@@ -86,6 +89,9 @@
         },
         "PetUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/PetUI.lua"
+        },
+        "BakeShopUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/BakeShopUI.lua"
         },
         "PetFollow": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/PetFollow.client.lua"

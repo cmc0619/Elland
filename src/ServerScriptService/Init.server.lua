@@ -25,6 +25,7 @@ local StageManager = require(ServerScriptService.StageManager)
 local NutcrackerBuilder = require(ServerScriptService.NutcrackerBuilder)
 local FamilyBuilder = require(ServerScriptService.FamilyBuilder)
 local PetManager = require(ServerScriptService.PetManager)
+local BakeryManager = require(ServerScriptService.BakeryManager)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
@@ -66,6 +67,9 @@ FamilyBuilder:Build()
 
 print("Initializing PetManager...")
 PetManager:Init(PlayerDataService, CurrencyManager)
+
+print("Initializing BakeryManager...")
+BakeryManager:Init(PlayerDataService, CurrencyManager)
 
 -- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")
