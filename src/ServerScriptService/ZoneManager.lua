@@ -98,10 +98,16 @@ function ZoneManager:Init()
 		self:TeleportToZone(player, zoneName)
 	end)
 
-	-- Spawn players at Hub when they join
+	-- Spawn players at Hub when they first join. Later respawns (deaths)
+	-- are left alone so systems like the Obby can respawn the player at
+	-- their checkpoint instead of being dragged back to the Hub.
 	Players.PlayerAdded:Connect(function(player)
+		local isFirstSpawn = true
 		player.CharacterAdded:Connect(function()
-			self:TeleportToZone(player, "Hub")
+			if isFirstSpawn then
+				isFirstSpawn = false
+				self:TeleportToZone(player, "Hub")
+			end
 		end)
 	end)
 

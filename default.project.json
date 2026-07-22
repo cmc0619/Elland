@@ -35,6 +35,9 @@
       "BuildingSandbox": {
         "$path": "src/ServerScriptService/BuildingSandbox.lua"
       },
+      "ObbyManager": {
+        "$path": "src/ServerScriptService/ObbyManager.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }
