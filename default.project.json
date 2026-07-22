@@ -56,6 +56,9 @@
       "BakeryManager": {
         "$path": "src/ServerScriptService/BakeryManager.lua"
       },
+      "HuntManager": {
+        "$path": "src/ServerScriptService/HuntManager.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }
@@ -95,6 +98,9 @@
         },
         "PetFollow": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/PetFollow.client.lua"
+        },
+        "HuntClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/HuntClient.client.lua"
         },
         "BuildToolClient": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/BuildToolClient.client.lua"

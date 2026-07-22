@@ -208,6 +208,29 @@ Constants.BAKERY = {
 	STEPS = { "Stir!", "Add sprinkles!", "Frost!" }, -- One timed button per step
 }
 
+-- Music Note Hunt Settings
+-- 10 glowing eighth-note pickups hidden around the whole map (never
+-- underwater). HuntManager builds/animates them and records per-player
+-- progress in saved data (HuntNotes / HuntCompleted).
+Constants.HUNT = {
+	NOTE_REWARD = 5, -- Coins per note found
+	COMPLETE_REWARD = 100, -- Bonus for finding all 10
+	SPIN_SPEED = 1.2, -- Radians per second
+	BOB_AMPLITUDE = 0.5, -- Studs up/down
+	NOTES = {
+		Vector3.new(194, 73, -196), -- 1: Hilltop by the swing (easy landmark)
+		Vector3.new(30, 12, -40), -- 2: Riverbank near the Hub
+		Vector3.new(200, 13, 200), -- 3: Inside the Fashion Boutique
+		Vector3.new(-40, 13.5, -140), -- 4: Center stage
+		Vector3.new(86, 33, 100), -- 5: Past the obby winner pad (tricky)
+		Vector3.new(72, 13, -152), -- 6: Nutcracker Plaza corner
+		Vector3.new(-200, 13, 200), -- 7: Inside the Wordle Library
+		Vector3.new(150, 12, -83), -- 8: Behind Ella's House
+		Vector3.new(128, 12, -140), -- 9: By the picnic blanket
+		Vector3.new(-235, 12, -235), -- 10: Corner of the Building Area
+	},
+}
+
 -- Building Area Settings (legacy saved-build config; kept for future persistence)
 Constants.BUILDING = {
 	MAX_BUILDS = 20,
