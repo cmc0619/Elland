@@ -34,6 +34,9 @@ local DEFAULT_DATA = {
 	-- Music Note Hunt: collected note indexes + completion flag
 	HuntNotes = {},
 	HuntCompleted = false,
+	-- Talent Show: shows hosted at Ella's Stage + best audience reaction
+	TalentShowsHosted = 0,
+	BestApplause = 0,
 	Zones = {
 		WordleLibrary = {
 			Completed = {},
@@ -94,8 +97,8 @@ function PlayerDataService:LoadData(player)
 	local retries = 3
 	for i = 1, retries do
 		success, data = pcall(function()
-			return PlayerDataStore:GetAsync(userId)
-		end)
+		return PlayerDataStore:GetAsync(userId)
+	end)
 
 		if success then
 			break
@@ -145,8 +148,8 @@ function PlayerDataService:SaveData(player)
 
 	for i = 1, retries do
 		success = pcall(function()
-			PlayerDataStore:SetAsync(userId, data)
-		end)
+		PlayerDataStore:SetAsync(userId, data)
+	end)
 
 		if success then
 			return true

@@ -21,6 +21,7 @@ local ZoneMenuUI = require(script.Parent:WaitForChild("ZoneMenuUI"))
 local FashionUI = require(script.Parent:WaitForChild("FashionUI"))
 local PetUI = require(script.Parent:WaitForChild("PetUI"))
 local BakeShopUI = require(script.Parent:WaitForChild("BakeShopUI"))
+local TalentShowUI = require(script.Parent:WaitForChild("TalentShowUI"))
 
 -- Create the ClientController table
 local ClientController = {}
@@ -418,6 +419,14 @@ function ClientController:Init()
 	end)
 	if not bakerySuccess then
 		warn("BakeShopUI init failed:", bakeryError)
+	end
+
+	-- Talent Show audience voting panel (listens for TalentShowEvent)
+	local talentSuccess, talentError = pcall(function()
+		TalentShowUI:Init()
+	end)
+	if not talentSuccess then
+		warn("TalentShowUI init failed:", talentError)
 	end
 
 	-- Listen for world-event notifications (e.g. Nutcracker Plaza tree)

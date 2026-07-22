@@ -8,7 +8,7 @@ local Constants = {}
 
 -- Game Info
 Constants.GAME_NAME = "Elland"
-Constants.VERSION = "0.3.0"
+Constants.VERSION = "0.4.0"
 
 -- Currency
 Constants.CURRENCY_NAME = "Coins"
@@ -305,6 +305,20 @@ Constants.STAGE = {
 	--   "rbxassetid://1234567890",
 	-- Left empty on purpose: no audio plays until real IDs are added.
 	CHOIR_SONGS = {},
+}
+
+-- Talent Show (extends Ella's Stage, run by TalentShowManager)
+-- One server-managed show at a time: the host performs, everyone else
+-- votes in the last VOTING_WINDOW seconds, and the host earns Coins
+-- scaled by the audience's applause. Stats persist (TalentShowsHosted /
+-- BestApplause in player data).
+Constants.TALENT_SHOW = {
+	DURATION = 60, -- Total seconds a show runs
+	VOTING_WINDOW = 30, -- Last N seconds are open for audience votes
+	COOLDOWN = 600, -- 10 minutes between shows (server-wide)
+	VOTE_RATE_LIMIT = 1, -- Seconds between votes per audience member (server-enforced)
+	VOTES_PER_COIN = 2, -- 1 Coin per N total votes
+	MAX_COINS = 25, -- Payout cap per show
 }
 
 -- Nutcracker Plaza (festive corner)

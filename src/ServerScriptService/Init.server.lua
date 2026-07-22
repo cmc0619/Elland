@@ -22,6 +22,7 @@ local BuildingSandbox = require(ServerScriptService.BuildingSandbox)
 local ObbyManager = require(ServerScriptService.ObbyManager)
 local SoccerManager = require(ServerScriptService.SoccerManager)
 local StageManager = require(ServerScriptService.StageManager)
+local TalentShowManager = require(ServerScriptService.TalentShowManager)
 local NutcrackerBuilder = require(ServerScriptService.NutcrackerBuilder)
 local FamilyBuilder = require(ServerScriptService.FamilyBuilder)
 local PetManager = require(ServerScriptService.PetManager)
@@ -59,6 +60,9 @@ SoccerManager:Init(CurrencyManager)
 
 print("Initializing StageManager...")
 StageManager:Init(CurrencyManager)
+
+print("Initializing TalentShowManager...")
+TalentShowManager:Init(PlayerDataService, CurrencyManager)
 
 print("Building Nutcracker Plaza...")
 NutcrackerBuilder:Build()

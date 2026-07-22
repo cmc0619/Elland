@@ -44,6 +44,9 @@
       "StageManager": {
         "$path": "src/ServerScriptService/StageManager.lua"
       },
+      "TalentShowManager": {
+        "$path": "src/ServerScriptService/TalentShowManager.lua"
+      },
       "NutcrackerBuilder": {
         "$path": "src/ServerScriptService/NutcrackerBuilder.lua"
       },
@@ -95,6 +98,9 @@
         },
         "BakeShopUI": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/BakeShopUI.lua"
+        },
+        "TalentShowUI": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/TalentShowUI.lua"
         },
         "PetFollow": {
           "$path": "src/StarterPlayer/StarterPlayerScripts/PetFollow.client.lua"
