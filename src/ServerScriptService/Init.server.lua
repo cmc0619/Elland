@@ -20,6 +20,7 @@ local PolishBuilder = require(ServerScriptService.PolishBuilder)
 local NatureBuilder = require(ServerScriptService.NatureBuilder)
 local BuildingSandbox = require(ServerScriptService.BuildingSandbox)
 local ObbyManager = require(ServerScriptService.ObbyManager)
+local SoccerManager = require(ServerScriptService.SoccerManager)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
@@ -47,6 +48,10 @@ BuildingSandbox:Init()
 -- Ella's Obby (leaderstats + checkpoint respawns, pays via CurrencyManager)
 print("Initializing ObbyManager...")
 ObbyManager:Init(CurrencyManager)
+
+-- Soccer pitch (kickable ball, goals, scoreboard, coin rewards)
+print("Initializing SoccerManager...")
+SoccerManager:Init(CurrencyManager)
 
 -- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")

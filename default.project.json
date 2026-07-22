@@ -38,6 +38,9 @@
       "ObbyManager": {
         "$path": "src/ServerScriptService/ObbyManager.lua"
       },
+      "SoccerManager": {
+        "$path": "src/ServerScriptService/SoccerManager.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }
