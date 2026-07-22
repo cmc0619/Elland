@@ -1,16 +1,24 @@
 --[[
 	WorldBuilder
-	Generates the terrain and builds the structures for Elland
-	Run this script once in Studio to create the world
+	Generates the terrain and builds the structures for Elland.
+
+	Init.server.lua calls WorldBuilder:BuildWorld() on EVERY server start
+	(it cleans up any previously built world first), so this module must
+	stay idempotent. There is no separate "run once in Studio" step.
+
+	When the build finishes, Workspace:GetAttribute("WorldBuilt") is set
+	to true so other services (e.g. InteractionManager) can wait on the
+	world deterministically instead of guessing with task.wait().
 ]]
 
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
 
 local WorldBuilder = {}
+
+local GROUND_LEVEL = 10 -- Top surface of the base terrain (Y=0 to Y=10)
 
 -- Create grass terrain
 function WorldBuilder:CreateTerrain()
@@ -19,9 +27,10 @@ function WorldBuilder:CreateTerrain()
 	local terrain = Workspace.Terrain
 	terrain:Clear()
 
-	-- Create thin grass layer starting at ground level
-	local size = Vector3.new(600, 10, 600)  -- Only 10 studs tall
-	local center = Vector3.new(0, 5, 0)     -- Center at Y=5, so terrain is Y=0 to Y=10
+	-- Thin grass layer: TERRAIN_SIZE is (600, 10, 600), centered at Y=5
+	-- so the terrain spans Y=0 to Y=10.
+	local size = Constants.WORLD.TERRAIN_SIZE
+	local center = Vector3.new(0, size.Y / 2, 0)
 
 	terrain:FillBlock(
 		CFrame.new(center),
@@ -48,7 +57,7 @@ function WorldBuilder:CreateRiver()
 
 	for i = 0, segments do
 		local t = i / segments
-		
+
 		-- Base position along the line
 		local basePos = riverStart + (dir * (totalDist * t))
 
@@ -56,63 +65,70 @@ function WorldBuilder:CreateRiver()
 		local meanderOffset = math.sin(t * math.pi * 4) * 30
 		local pos = basePos + (perp * meanderOffset)
 
-		-- FIRST: Carve a deeper river channel into the terrain
-		-- Ground surface is at Y=10. We want to carve down to Y=5 (5 studs deep)
-		-- Air block: center at Y=10, height 10 → carves from Y=5 to Y=15
+		-- FIRST: Carve the river channel into the terrain.
+		-- Ground surface is at Y=10. Carve from Y=5 to Y=15 so the channel
+		-- is 5 studs deep and any grass above the waterline is removed.
 		local airPos = Vector3.new(pos.X, 10, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(airPos),
-			Vector3.new(28, 10, 28),  -- Slightly wider than water for banks
+			Vector3.new(28, 10, 28), -- Slightly wider than water for banks
 			Enum.Material.Air
 		)
 
-		-- SECOND: Fill with water
-		-- Water should fill from Y=5 to Y=9.8 (4.8 studs deep, surface almost at ground level)
-		-- Center at Y=7.4, height 4.8 → Y=5 to Y=9.8
+		-- SECOND: Lay a sandy riverbed so no grass is left under the water.
+		-- Bed fills Y=4.2 to Y=5.4, slightly wider than the water.
+		local bedPos = Vector3.new(pos.X, 4.8, pos.Z)
+		terrain:FillBlock(
+			CFrame.new(bedPos),
+			Vector3.new(24, 1.2, 24),
+			Enum.Material.Sand
+		)
+
+		-- THIRD: Fill with water.
+		-- Water fills Y=5 to Y=9.8 (surface just below ground level).
 		local waterPos = Vector3.new(pos.X, 7.4, pos.Z)
 		terrain:FillBlock(
 			CFrame.new(waterPos),
-			Vector3.new(22, 4.8, 22),  -- Narrower than air carving for natural banks
+			Vector3.new(22, 4.8, 22), -- Narrower than air carving for natural banks
 			Enum.Material.Water
 		)
 	end
 
-	print("River created - channel carved 5 studs deep, water surface at Y=9.8")
+	print("River created - channel carved 5 studs deep, sand bed, water surface at Y=9.8")
 end
 
--- Create Ella's Lookout - the big hill (FIXED: proper cone shape, not spheres)
+-- Create Ella's Lookout - the big hill with the wishing tree and swing
 function WorldBuilder:CreateEllasLookout()
 	print("Creating Ella's Lookout...")
 
-	local pos = Constants.ZONES.EllasLookout.Position  -- Y=70 is the TOP of the hill
+	local pos = Constants.ZONES.EllasLookout.Position -- Y=70 is the TOP of the hill
 	local terrain = Workspace.Terrain
 
 	-- Hill parameters
-	local hillBaseY = 10      -- Ground level (top of base terrain)
-	local hillTopY = pos.Y    -- Top of hill (Y=70)
-	local hillHeight = hillTopY - hillBaseY  -- 60 studs tall
+	local hillBaseY = GROUND_LEVEL
+	local hillTopY = pos.Y
+	local hillHeight = hillTopY - hillBaseY -- 60 studs tall
 	local hillCenterX = pos.X
 	local hillCenterZ = pos.Z
-	local baseRadius = 80     -- Wide base for gentle slope
+	local baseRadius = 80 -- Wide base for gentle slope
 
-	-- Create hill using stacked cylinders (creates a cone shape)
-	-- This looks like a natural hill, not a sphere
-	local layers = 30  -- Number of cylinder layers
+	-- Create hill using stacked cylinders (creates a cone shape).
+	-- NOTE: Terrain:FillCylinder's axis runs along the CFrame's Z axis,
+	-- so the CFrame must be rotated 90 degrees to make each layer horizontal.
+	local layers = 30
 	for i = 0, layers do
-		local progress = i / layers  -- 0 to 1 from bottom to top
-		
+		local progress = i / layers -- 0 to 1 from bottom to top
+
 		-- Current layer height
 		local layerY = hillBaseY + (hillHeight * progress)
-		
+
 		-- Radius decreases as we go up (creates cone shape)
-		-- Use a slight curve for more natural look
-		local layerRadius = baseRadius * (1 - progress * 0.85)  -- Shrinks to 15% at top
-		
+		local layerRadius = baseRadius * (1 - progress * 0.85) -- Shrinks to 15% at top
+
 		if layerRadius > 3 then
-			-- Use FillCylinder for flat circular layers
 			terrain:FillCylinder(
-				CFrame.new(hillCenterX, layerY, hillCenterZ),
-				4,  -- Height of each cylinder layer
+				CFrame.new(hillCenterX, layerY, hillCenterZ) * CFrame.Angles(math.rad(90), 0, 0),
+				4, -- Height of each cylinder layer
 				layerRadius,
 				Enum.Material.Grass
 			)
@@ -121,9 +137,9 @@ function WorldBuilder:CreateEllasLookout()
 
 	-- Add a flat top to the hill for the tree
 	terrain:FillCylinder(
-		CFrame.new(hillCenterX, hillTopY - 2, hillCenterZ),
+		CFrame.new(hillCenterX, hillTopY - 2, hillCenterZ) * CFrame.Angles(math.rad(90), 0, 0),
 		4,
-		15,  -- Flat top radius
+		15, -- Flat top radius
 		Enum.Material.Grass
 	)
 
@@ -135,7 +151,7 @@ function WorldBuilder:CreateEllasLookout()
 	local trunk = Instance.new("Part")
 	trunk.Name = "Trunk"
 	trunk.Size = Vector3.new(3, 15, 3)
-	trunk.Position = Vector3.new(hillCenterX, hillTopY + 7.5, hillCenterZ)  -- Trunk base at hill top
+	trunk.Position = Vector3.new(hillCenterX, hillTopY + 7.5, hillCenterZ) -- Trunk base at hill top
 	trunk.Anchored = true
 	trunk.Material = Enum.Material.Wood
 	trunk.BrickColor = BrickColor.new("Brown")
@@ -146,7 +162,7 @@ function WorldBuilder:CreateEllasLookout()
 	foliage.Name = "Foliage"
 	foliage.Shape = Enum.PartType.Ball
 	foliage.Size = Vector3.new(20, 20, 20)
-	foliage.Position = Vector3.new(hillCenterX, hillTopY + 20, hillCenterZ)  -- Above trunk
+	foliage.Position = Vector3.new(hillCenterX, hillTopY + 20, hillCenterZ) -- Above trunk
 	foliage.Anchored = true
 	foliage.Material = Enum.Material.Grass
 	foliage.BrickColor = BrickColor.new("Dark green")
@@ -156,69 +172,60 @@ function WorldBuilder:CreateEllasLookout()
 	local branch = Instance.new("Part")
 	branch.Name = "SwingBranch"
 	branch.Size = Vector3.new(12, 1, 1)
-	branch.Position = Vector3.new(hillCenterX + 5, hillTopY + 17, hillCenterZ)  -- At foliage level
+	branch.Position = Vector3.new(hillCenterX + 5, hillTopY + 17, hillCenterZ) -- At foliage level
 	branch.Anchored = true
 	branch.Material = Enum.Material.Wood
 	branch.BrickColor = BrickColor.new("Brown")
 	branch.Parent = tree
 
-	-- Swing ropes (visual only)
-	local leftRope = Instance.new("Part")
-	leftRope.Name = "LeftRope"
-	leftRope.Size = Vector3.new(0.3, 8, 0.3)
-	leftRope.Position = branch.Position + Vector3.new(-2, -4, 0)
-	leftRope.Anchored = true
-	leftRope.BrickColor = BrickColor.new("Tan")
-	leftRope.Parent = tree
-
-	local rightRope = Instance.new("Part")
-	rightRope.Name = "RightRope"
-	rightRope.Size = Vector3.new(0.3, 8, 0.3)
-	rightRope.Position = branch.Position + Vector3.new(2, -4, 0)
-	rightRope.Anchored = true
-	rightRope.BrickColor = BrickColor.new("Tan")
-	rightRope.Parent = tree
-
-	-- Swing seat (moved further out from hill)
+	-- Swing seat hangs DIRECTLY BELOW the branch so the ropes start
+	-- vertical and the seat swings as a proper pendulum. (The old build
+	-- offset the seat 10 studs sideways with only 8-stud ropes, which
+	-- left the ropes permanently taut and the swing broken.)
 	local seat = Instance.new("Seat")
 	seat.Name = "SwingSeat"
 	seat.Size = Vector3.new(4, 0.5, 2)
-	-- Use CFrame to set position AND rotation
-	-- Rotate 90 degrees on Y axis so player faces outward from the hill
-	local seatPos = branch.Position + Vector3.new(10, -8, 0)
+	local seatPos = branch.Position + Vector3.new(0, -8, 0)
+	-- Rotate 90 degrees on Y so the sitter faces outward from the trunk
 	seat.CFrame = CFrame.new(seatPos) * CFrame.Angles(0, math.rad(90), 0)
 	seat.Anchored = false
 	seat.BrickColor = BrickColor.new("Medium brown")
 	seat.Parent = tree
 
-	-- Attach swing with constraints
-	local attachment1 = Instance.new("Attachment")
-	attachment1.Position = Vector3.new(-2, 0.25, 0)
-	attachment1.Parent = seat
+	-- Attachments on the seat (top face, left/right edges)
+	local seatAttachL = Instance.new("Attachment")
+	seatAttachL.Name = "SeatAttachL"
+	seatAttachL.Position = Vector3.new(-1.5, 0.25, 0)
+	seatAttachL.Parent = seat
 
-	local attachment2 = Instance.new("Attachment")
-	attachment2.Position = Vector3.new(2, 0.25, 0)
-	attachment2.Parent = seat
+	local seatAttachR = Instance.new("Attachment")
+	seatAttachR.Name = "SeatAttachR"
+	seatAttachR.Position = Vector3.new(1.5, 0.25, 0)
+	seatAttachR.Parent = seat
 
-	local attachment3 = Instance.new("Attachment")
-	attachment3.Position = Vector3.new(-2, -0.5, 0)
-	attachment3.Parent = branch
+	-- Attachments on the branch, aligned vertically with the seat attachments
+	local branchAttachL = Instance.new("Attachment")
+	branchAttachL.Name = "BranchAttachL"
+	branchAttachL.Position = Vector3.new(0, -0.5, -1.5)
+	branchAttachL.Parent = branch
 
-	local attachment4 = Instance.new("Attachment")
-	attachment4.Position = Vector3.new(2, -0.5, 0)
-	attachment4.Parent = branch
+	local branchAttachR = Instance.new("Attachment")
+	branchAttachR.Name = "BranchAttachR"
+	branchAttachR.Position = Vector3.new(0, -0.5, 1.5)
+	branchAttachR.Parent = branch
 
+	-- Rope constraints connect seat to branch (Visible draws the rope)
 	local rope1 = Instance.new("RopeConstraint")
-	rope1.Attachment0 = attachment1
-	rope1.Attachment1 = attachment3
-	rope1.Length = 8
+	rope1.Attachment0 = branchAttachL
+	rope1.Attachment1 = seatAttachL
+	rope1.Length = 7.5
 	rope1.Visible = true
 	rope1.Parent = seat
 
 	local rope2 = Instance.new("RopeConstraint")
-	rope2.Attachment0 = attachment2
-	rope2.Attachment1 = attachment4
-	rope2.Length = 8
+	rope2.Attachment0 = branchAttachR
+	rope2.Attachment1 = seatAttachR
+	rope2.Length = 7.5
 	rope2.Visible = true
 	rope2.Parent = seat
 
@@ -228,15 +235,157 @@ function WorldBuilder:CreateEllasLookout()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "LookoutSpawn"
 	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = Vector3.new(hillCenterX - 100, 12, hillCenterZ)  -- Further out from hill base
+	spawn.Position = Vector3.new(hillCenterX - 100, 12, hillCenterZ) -- Out from hill base
 	spawn.Anchored = true
 	spawn.Transparency = 0.5
 	spawn.BrickColor = BrickColor.new("Bright green")
-	spawn.CanCollide = true  -- IMPORTANT: Must be true so players don't fall through
+	spawn.CanCollide = true -- IMPORTANT: Must be true so players don't fall through
 	spawn.Duration = 0 -- Remove ForceField
 	spawn.Parent = Workspace
 
-	print("Ella's Lookout created - proper cone-shaped hill")
+	print("Ella's Lookout created - cone hill with working swing")
+end
+
+--[[
+	BuildStructure
+	Shared helper for the repeated base + walls + door + roof + sign pattern
+	used by Ella's House, the Wordle Library and the Fashion Boutique.
+
+	config = {
+		Name            string
+		Position        Vector3 (ground-level center of the footprint)
+		Size            Vector3 (footprint X/Z; Y ignored)
+		WallHeight      number
+		WallColor       BrickColor
+		WallMaterial    Enum.Material? (default SmoothPlastic)
+		WallTransparency number? (default 0)
+		RoofColor       BrickColor
+		GabledRoof      boolean? (two wedges, like the house; default flat slab)
+		Door            boolean? (add a physical door part; default false)
+		SignText        string?
+		SignTextColor   Color3?
+	}
+]]
+function WorldBuilder:BuildStructure(config)
+	local pos = config.Position
+	local sizeX = config.Size.X
+	local sizeZ = config.Size.Z
+	local wallHeight = config.WallHeight
+	local baseHeight = 1
+	local baseCenter = GROUND_LEVEL + baseHeight / 2
+	local wallY = GROUND_LEVEL + baseHeight + wallHeight / 2
+	local doorWidth = 8
+
+	local model = Instance.new("Model")
+	model.Name = config.Name
+
+	local wallMaterial = config.WallMaterial or Enum.Material.SmoothPlastic
+	local wallTransparency = config.WallTransparency or 0
+
+	local function newPart(name, partSize, partPos, color, material, transparency)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = partSize
+		p.Position = partPos
+		p.Anchored = true
+		p.BrickColor = color
+		p.Material = material or Enum.Material.SmoothPlastic
+		p.Transparency = transparency or 0
+		p.Parent = model
+		return p
+	end
+
+	-- Base slab sits ON the ground
+	newPart("Base", Vector3.new(sizeX, baseHeight, sizeZ),
+		Vector3.new(pos.X, baseCenter, pos.Z), BrickColor.new("Dark stone grey"))
+
+	-- Front wall with a door opening (split into left/right pieces + frame top)
+	local sideWidth = (sizeX - doorWidth) / 2
+	local frontZ = pos.Z - sizeZ / 2
+	newPart("FrontWallLeft", Vector3.new(sideWidth, wallHeight, 1),
+		Vector3.new(pos.X - (doorWidth + sideWidth) / 2, wallY, frontZ),
+		config.WallColor, wallMaterial, wallTransparency)
+	newPart("FrontWallRight", Vector3.new(sideWidth, wallHeight, 1),
+		Vector3.new(pos.X + (doorWidth + sideWidth) / 2, wallY, frontZ),
+		config.WallColor, wallMaterial, wallTransparency)
+	newPart("DoorFrame", Vector3.new(doorWidth, 4, 1),
+		Vector3.new(pos.X, wallY + wallHeight / 2 - 2, frontZ),
+		config.WallColor, wallMaterial, wallTransparency)
+
+	-- Back and side walls
+	newPart("BackWall", Vector3.new(sizeX, wallHeight, 1),
+		Vector3.new(pos.X, wallY, pos.Z + sizeZ / 2),
+		config.WallColor, wallMaterial, wallTransparency)
+	newPart("LeftWall", Vector3.new(1, wallHeight, sizeZ),
+		Vector3.new(pos.X - sizeX / 2, wallY, pos.Z),
+		config.WallColor, wallMaterial, wallTransparency)
+	newPart("RightWall", Vector3.new(1, wallHeight, sizeZ),
+		Vector3.new(pos.X + sizeX / 2, wallY, pos.Z),
+		config.WallColor, wallMaterial, wallTransparency)
+
+	-- Roof
+	local wallTop = wallY + wallHeight / 2
+	if config.GabledRoof then
+		local roofY = wallTop + 4
+		for _, angle in ipairs({ 90, -90 }) do
+			local roof = Instance.new("WedgePart")
+			roof.Name = "Roof"
+			roof.Size = Vector3.new(1, 8, sizeZ + 7)
+			roof.Position = Vector3.new(pos.X, roofY, pos.Z)
+			roof.Orientation = Vector3.new(0, angle, 0)
+			roof.Anchored = true
+			roof.BrickColor = config.RoofColor
+			roof.Parent = model
+		end
+	else
+		newPart("Roof", Vector3.new(sizeX, 1, sizeZ),
+			Vector3.new(pos.X, wallTop + 0.5, pos.Z), config.RoofColor)
+	end
+
+	-- Optional physical door
+	if config.Door then
+		newPart("Door", Vector3.new(4, 8, 0.5),
+			Vector3.new(pos.X, GROUND_LEVEL + baseHeight + 4, frontZ - 0.5),
+			BrickColor.new("Brown"))
+	end
+
+	-- Optional sign above the entrance
+	if config.SignText then
+		local sign = newPart("Sign", Vector3.new(math.min(sizeX - 10, 20), 3, 0.5),
+			Vector3.new(pos.X, GROUND_LEVEL + baseHeight + 10, frontZ - 0.5),
+			BrickColor.new("White"))
+
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = Enum.NormalId.Front
+		signGui.Parent = sign
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = config.SignText
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+		label.TextColor3 = config.SignTextColor or Color3.fromRGB(50, 50, 50)
+		label.Parent = signGui
+	end
+
+	model.Parent = Workspace
+	return model
+end
+
+-- Helper: create a spawn location for a zone
+function WorldBuilder:CreateSpawn(name, position, color)
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = name
+	spawn.Size = Vector3.new(6, 1, 6)
+	spawn.Position = position
+	spawn.Anchored = true
+	spawn.Transparency = 0.5
+	spawn.BrickColor = color
+	spawn.CanCollide = true -- IMPORTANT: Must be true so players don't fall through
+	spawn.Duration = 0 -- Remove ForceField
+	spawn.Parent = Workspace
+	return spawn
 end
 
 -- Create Ella's House
@@ -244,114 +393,19 @@ function WorldBuilder:CreateEllasHouse()
 	print("Creating Ella's House...")
 
 	local pos = Constants.ZONES.EllasHouse.Position
-	-- Ground is at Y=10, so position house with base ON the ground
-	local groundLevel = 10
-	local baseHeight = 1
-	local baseCenter = groundLevel + (baseHeight / 2)  -- Y=10.5
 
-	local house = Instance.new("Model")
-	house.Name = "EllasHouse"
+	self:BuildStructure({
+		Name = "EllasHouse",
+		Position = pos,
+		Size = Vector3.new(30, 0, 25),
+		WallHeight = 12,
+		WallColor = BrickColor.new("Light yellow"),
+		RoofColor = BrickColor.new("Bright red"),
+		GabledRoof = true,
+		Door = true,
+	})
 
-	-- House base - sits ON ground
-	local base = Instance.new("Part")
-	base.Name = "Base"
-	base.Size = Vector3.new(30, 1, 25)
-	base.Position = Vector3.new(pos.X, baseCenter, pos.Z)  -- Base at Y=10.5
-	base.Anchored = true
-	base.BrickColor = BrickColor.new("Dark stone grey")
-	base.Parent = house
-
-	local wallY = groundLevel + baseHeight + 6  -- Y=10 + 1 + 6 = 17
-
-	-- Front wall with door opening (split into two parts)
-	local wall1Left = Instance.new("Part")
-	wall1Left.Name = "FrontWallLeft"
-	wall1Left.Size = Vector3.new(11, 12, 1)
-	wall1Left.Position = Vector3.new(pos.X - 9.5, wallY, pos.Z - 12)
-	wall1Left.Anchored = true
-	wall1Left.BrickColor = BrickColor.new("Light yellow")
-	wall1Left.Parent = house
-	
-	local wall1Right = Instance.new("Part")
-	wall1Right.Name = "FrontWallRight"
-	wall1Right.Size = Vector3.new(11, 12, 1)
-	wall1Right.Position = Vector3.new(pos.X + 9.5, wallY, pos.Z - 12)
-	wall1Right.Anchored = true
-	wall1Right.BrickColor = BrickColor.new("Light yellow")
-	wall1Right.Parent = house
-	
-	-- Top of door frame
-	local doorFrame = Instance.new("Part")
-	doorFrame.Name = "DoorFrame"
-	doorFrame.Size = Vector3.new(8, 4, 1)
-	doorFrame.Position = Vector3.new(pos.X, wallY + 4, pos.Z - 12)
-	doorFrame.Anchored = true
-	doorFrame.BrickColor = BrickColor.new("Light yellow")
-	doorFrame.Parent = house
-
-	local wall2 = Instance.new("Part")
-	wall2.Size = Vector3.new(30, 12, 1)
-	wall2.Position = Vector3.new(pos.X, wallY, pos.Z + 12)
-	wall2.Anchored = true
-	wall2.BrickColor = BrickColor.new("Light yellow")
-	wall2.Parent = house
-
-	local wall3 = Instance.new("Part")
-	wall3.Size = Vector3.new(1, 12, 25)
-	wall3.Position = Vector3.new(pos.X - 15, wallY, pos.Z)
-	wall3.Anchored = true
-	wall3.BrickColor = BrickColor.new("Light yellow")
-	wall3.Parent = house
-
-	local wall4 = Instance.new("Part")
-	wall4.Size = Vector3.new(1, 12, 25)
-	wall4.Position = Vector3.new(pos.X + 15, wallY, pos.Z)
-	wall4.Anchored = true
-	wall4.BrickColor = BrickColor.new("Light yellow")
-	wall4.Parent = house
-
-	local roofY = wallY + 6 + 4  -- Wall center + half wall height + half roof height
-
-	-- Roof
-	local roof = Instance.new("WedgePart")
-	roof.Size = Vector3.new(1, 8, 32)
-	roof.Position = Vector3.new(pos.X, roofY, pos.Z)
-	roof.Orientation = Vector3.new(0, 90, 0)
-	roof.Anchored = true
-	roof.BrickColor = BrickColor.new("Bright red")
-	roof.Parent = house
-
-	local roof2 = Instance.new("WedgePart")
-	roof2.Size = Vector3.new(1, 8, 32)
-	roof2.Position = Vector3.new(pos.X, roofY, pos.Z)
-	roof2.Orientation = Vector3.new(0, -90, 0)
-	roof2.Anchored = true
-	roof2.BrickColor = BrickColor.new("Bright red")
-	roof2.Parent = house
-
-	local doorY = groundLevel + baseHeight + 4  -- Bottom of wall + half door height
-
-	-- Door
-	local door = Instance.new("Part")
-	door.Size = Vector3.new(4, 8, 0.5)
-	door.Position = Vector3.new(pos.X, doorY, pos.Z - 12.5)
-	door.Anchored = true
-	door.BrickColor = BrickColor.new("Brown")
-	door.Parent = house
-
-	house.Parent = Workspace
-
-	-- Spawn location
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "HouseSpawn"
-	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 2, -20)
-	spawn.Anchored = true
-	spawn.Transparency = 0.5
-	spawn.BrickColor = BrickColor.new("Light yellow")
-	spawn.CanCollide = true  -- IMPORTANT: Must be true
-	spawn.Duration = 0 -- Remove ForceField
-	spawn.Parent = Workspace
+	self:CreateSpawn("HouseSpawn", pos + Vector3.new(0, 2, -20), BrickColor.new("Light yellow"))
 
 	print("Ella's House created")
 end
@@ -361,106 +415,19 @@ function WorldBuilder:CreateWordleLibrary()
 	print("Creating Wordle Library...")
 
 	local pos = Constants.ZONES.WordleLibrary.Position
-	-- Ground is at Y=10, so position building with base ON the ground
-	local groundLevel = 10
-	local baseHeight = 1
-	local baseCenter = groundLevel + (baseHeight / 2)
 
-	local library = Instance.new("Model")
-	library.Name = "WordleLibrary"
+	self:BuildStructure({
+		Name = "WordleLibrary",
+		Position = pos,
+		Size = Vector3.new(35, 0, 30),
+		WallHeight = 14,
+		WallColor = BrickColor.new("Lavender"),
+		RoofColor = BrickColor.new("Dark indigo"),
+		SignText = "WORDLE LIBRARY",
+		SignTextColor = Color3.fromRGB(100, 50, 150),
+	})
 
-	-- Building base
-	local base = Instance.new("Part")
-	base.Size = Vector3.new(35, 1, 30)
-	base.Position = Vector3.new(pos.X, baseCenter, pos.Z)
-	base.Anchored = true
-	base.BrickColor = BrickColor.new("Dark stone grey")
-	base.Parent = library
-
-	-- Walls with door opening on front
-	local wallY = groundLevel + baseHeight + 7 -- Base + half wall height (14/2)
-	
-	-- Front wall with door opening (split)
-	local frontWallLeft = Instance.new("Part")
-	frontWallLeft.Size = Vector3.new(12, 14, 1)
-	frontWallLeft.Position = Vector3.new(pos.X - 11.5, wallY, pos.Z - 15)
-	frontWallLeft.Anchored = true
-	frontWallLeft.BrickColor = BrickColor.new("Lavender")
-	frontWallLeft.Parent = library
-	
-	local frontWallRight = Instance.new("Part")
-	frontWallRight.Size = Vector3.new(12, 14, 1)
-	frontWallRight.Position = Vector3.new(pos.X + 11.5, wallY, pos.Z - 15)
-	frontWallRight.Anchored = true
-	frontWallRight.BrickColor = BrickColor.new("Lavender")
-	frontWallRight.Parent = library
-	
-	-- Door frame top
-	local doorFrameTop = Instance.new("Part")
-	doorFrameTop.Size = Vector3.new(11, 4, 1)
-	doorFrameTop.Position = Vector3.new(pos.X, wallY + 5, pos.Z - 15)
-	doorFrameTop.Anchored = true
-	doorFrameTop.BrickColor = BrickColor.new("Lavender")
-	doorFrameTop.Parent = library
-	
-	-- Other walls (back, left, right)
-	for i, wallData in ipairs({
-		{Vector3.new(0, 0, 15), Vector3.new(35, 14, 1)},
-		{Vector3.new(-17.5, 0, 0), Vector3.new(1, 14, 30)},
-		{Vector3.new(17.5, 0, 0), Vector3.new(1, 14, 30)},
-	}) do
-		local wall = Instance.new("Part")
-		wall.Size = wallData[2]
-		wall.Position = Vector3.new(pos.X, wallY, pos.Z) + wallData[1]
-		wall.Anchored = true
-		wall.BrickColor = BrickColor.new("Lavender")
-		wall.Parent = library
-	end
-
-	-- Roof
-	local roofY = groundLevel + baseHeight + 14 + 0.5 -- Base + wall height + half roof height
-	local roof = Instance.new("Part")
-	roof.Size = Vector3.new(35, 1, 30)
-	roof.Position = Vector3.new(pos.X, roofY, pos.Z)
-	roof.Anchored = true
-	roof.BrickColor = BrickColor.new("Dark indigo")
-	roof.Parent = library
-
-	-- Sign
-	local signY = groundLevel + baseHeight + 10
-	local sign = Instance.new("Part")
-	sign.Size = Vector3.new(20, 3, 0.5)
-	sign.Position = Vector3.new(pos.X, signY, pos.Z - 15.5)
-	sign.Anchored = true
-	sign.BrickColor = BrickColor.new("White")
-	sign.Parent = library
-
-	local signText = Instance.new("SurfaceGui")
-	signText.Face = Enum.NormalId.Front
-	signText.Parent = sign
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = "WORDLE LIBRARY"
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = Color3.fromRGB(100, 50, 150)
-	label.Parent = signText
-
-	library.Parent = Workspace
-
-	-- Spawn location
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "LibrarySpawn"
-	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 2, -22)
-	spawn.Anchored = true
-	spawn.Transparency = 0.5
-	spawn.BrickColor = BrickColor.new("Lavender")
-	spawn.CanCollide = true  -- IMPORTANT: Must be true
-	spawn.Duration = 0 -- Remove ForceField
-	spawn.Parent = Workspace
+	self:CreateSpawn("LibrarySpawn", pos + Vector3.new(0, 2, -22), BrickColor.new("Lavender"))
 
 	print("Wordle Library created")
 end
@@ -470,114 +437,21 @@ function WorldBuilder:CreateFashionBoutique()
 	print("Creating Fashion Boutique...")
 
 	local pos = Constants.ZONES.FashionBoutique.Position
-	-- Ground is at Y=10, so position building with base ON the ground
-	local groundLevel = 10
-	local baseHeight = 1
-	local baseCenter = groundLevel + (baseHeight / 2)
 
-	local boutique = Instance.new("Model")
-	boutique.Name = "FashionBoutique"
+	self:BuildStructure({
+		Name = "FashionBoutique",
+		Position = pos,
+		Size = Vector3.new(30, 0, 30),
+		WallHeight = 14,
+		WallColor = BrickColor.new("Pink"),
+		WallMaterial = Enum.Material.Glass,
+		WallTransparency = 0.3,
+		RoofColor = BrickColor.new("Hot pink"),
+		SignText = "FASHION BOUTIQUE",
+		SignTextColor = Color3.fromRGB(255, 100, 150),
+	})
 
-	-- Building base
-	local base = Instance.new("Part")
-	base.Size = Vector3.new(30, 1, 30)
-	base.Position = Vector3.new(pos.X, baseCenter, pos.Z)
-	base.Anchored = true
-	base.BrickColor = BrickColor.new("Dark stone grey")
-	base.Parent = boutique
-
-	-- Walls with glass - front has door opening
-	local wallY = groundLevel + baseHeight + 7 -- Base + half wall height (14/2)
-
-	-- Front wall with door opening (split)
-	local frontWallLeft = Instance.new("Part")
-	frontWallLeft.Size = Vector3.new(10, 14, 1)
-	frontWallLeft.Position = Vector3.new(pos.X - 10, wallY, pos.Z - 15)
-	frontWallLeft.Anchored = true
-	frontWallLeft.Material = Enum.Material.Glass
-	frontWallLeft.Transparency = 0.3
-	frontWallLeft.BrickColor = BrickColor.new("Pink")
-	frontWallLeft.Parent = boutique
-	
-	local frontWallRight = Instance.new("Part")
-	frontWallRight.Size = Vector3.new(10, 14, 1)
-	frontWallRight.Position = Vector3.new(pos.X + 10, wallY, pos.Z - 15)
-	frontWallRight.Anchored = true
-	frontWallRight.Material = Enum.Material.Glass
-	frontWallRight.Transparency = 0.3
-	frontWallRight.BrickColor = BrickColor.new("Pink")
-	frontWallRight.Parent = boutique
-	
-	-- Door frame top
-	local doorFrameTop = Instance.new("Part")
-	doorFrameTop.Size = Vector3.new(10, 4, 1)
-	doorFrameTop.Position = Vector3.new(pos.X, wallY + 5, pos.Z - 15)
-	doorFrameTop.Anchored = true
-	doorFrameTop.Material = Enum.Material.Glass
-	doorFrameTop.Transparency = 0.3
-	doorFrameTop.BrickColor = BrickColor.new("Pink")
-	doorFrameTop.Parent = boutique
-	
-	-- Other walls (back, left, right)
-	for i, wallData in ipairs({
-		{Vector3.new(0, 0, 15), Vector3.new(30, 14, 1)},
-		{Vector3.new(-15, 0, 0), Vector3.new(1, 14, 30)},
-		{Vector3.new(15, 0, 0), Vector3.new(1, 14, 30)},
-	}) do
-		local wall = Instance.new("Part")
-		wall.Size = wallData[2]
-		wall.Position = Vector3.new(pos.X, wallY, pos.Z) + wallData[1]
-		wall.Anchored = true
-		wall.Material = Enum.Material.Glass
-		wall.Transparency = 0.3
-		wall.BrickColor = BrickColor.new("Pink")
-		wall.Parent = boutique
-	end
-
-	-- Roof
-	local roofY = groundLevel + baseHeight + 14 + 0.5 -- Base + wall height + half roof height
-	local roof = Instance.new("Part")
-	roof.Size = Vector3.new(30, 1, 30)
-	roof.Position = Vector3.new(pos.X, roofY, pos.Z)
-	roof.Anchored = true
-	roof.BrickColor = BrickColor.new("Hot pink")
-	roof.Parent = boutique
-
-	-- Sign
-	local signY = groundLevel + baseHeight + 10
-	local sign = Instance.new("Part")
-	sign.Size = Vector3.new(15, 3, 0.5)
-	sign.Position = Vector3.new(pos.X, signY, pos.Z - 15.5)
-	sign.Anchored = true
-	sign.BrickColor = BrickColor.new("White")
-	sign.Parent = boutique
-
-	local signText = Instance.new("SurfaceGui")
-	signText.Face = Enum.NormalId.Front
-	signText.Parent = sign
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = "FASHION BOUTIQUE"
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = Color3.fromRGB(255, 100, 150)
-	label.Parent = signText
-
-	boutique.Parent = Workspace
-
-	-- Spawn location
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "BoutiqueSpawn"
-	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 2, -22)
-	spawn.Anchored = true
-	spawn.Transparency = 0.5
-	spawn.BrickColor = BrickColor.new("Pink")
-	spawn.CanCollide = true  -- IMPORTANT: Must be true
-	spawn.Duration = 0 -- Remove ForceField
-	spawn.Parent = Workspace
+	self:CreateSpawn("BoutiqueSpawn", pos + Vector3.new(0, 2, -22), BrickColor.new("Pink"))
 
 	print("Fashion Boutique created")
 end
@@ -587,32 +461,18 @@ function WorldBuilder:CreateBuildingArea()
 	print("Creating Building Area...")
 
 	local pos = Constants.ZONES.BuildingArea.Position
-	-- Ground is at Y=10, so position building with base ON the ground
-	local groundLevel = 10
-	local baseHeight = 1
-	local baseCenter = groundLevel + (baseHeight / 2)
 
-	-- Just create a large platform for building
+	-- Just a large platform for building
 	local platform = Instance.new("Part")
 	platform.Name = "BuildingPlatform"
 	platform.Size = Vector3.new(80, 1, 80)
-	platform.Position = Vector3.new(pos.X, baseCenter, pos.Z)
+	platform.Position = Vector3.new(pos.X, GROUND_LEVEL + 0.5, pos.Z)
 	platform.Anchored = true
 	platform.BrickColor = BrickColor.new("Sand yellow")
 	platform.Material = Enum.Material.Concrete
 	platform.Parent = Workspace
 
-	-- Spawn location
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "BuildingSpawn"
-	spawn.Size = Vector3.new(6, 1, 6)
-	spawn.Position = pos + Vector3.new(0, 2, 30)
-	spawn.Anchored = true
-	spawn.Transparency = 0.5
-	spawn.BrickColor = BrickColor.new("Sand yellow")
-	spawn.CanCollide = true  -- IMPORTANT: Must be true
-	spawn.Duration = 0 -- Remove ForceField
-	spawn.Parent = Workspace
+	self:CreateSpawn("BuildingSpawn", pos + Vector3.new(0, 2, 30), BrickColor.new("Sand yellow"))
 
 	print("Building Area created")
 end
@@ -622,39 +482,39 @@ function WorldBuilder:CreateHub()
 	print("Creating Hub...")
 
 	local pos = Constants.ZONES.Hub.Position
-	-- Hub should be ON the terrain (Y=10), not floating
-	local groundLevel = 10
-	local hubCenter = Vector3.new(pos.X, groundLevel, pos.Z)
+	local hubCenter = Vector3.new(pos.X, GROUND_LEVEL, pos.Z)
 
 	-- Create a nice platform by the river
 	local platform = Instance.new("Part")
 	platform.Name = "HubPlatform"
 	platform.Size = Vector3.new(20, 2, 20)
-	platform.Position = hubCenter + Vector3.new(0, 1, 0)  -- Platform center at Y=11
+	platform.Position = hubCenter + Vector3.new(0, 1, 0) -- Platform center at Y=11
 	platform.Anchored = true
 	platform.BrickColor = BrickColor.new("Sand blue")
 	platform.Material = Enum.Material.Slate
 	platform.Parent = Workspace
 
-	-- Add some decorative elements
+	-- Bench
 	local bench = Instance.new("Part")
+	bench.Name = "Bench"
 	bench.Size = Vector3.new(6, 2, 2)
-	bench.Position = hubCenter + Vector3.new(0, 3.5, 8)  -- On top of platform
+	bench.Position = hubCenter + Vector3.new(0, 3.5, 8) -- On top of platform
 	bench.Anchored = true
 	bench.BrickColor = BrickColor.new("Brown")
 	bench.Parent = Workspace
 
 	-- Welcome sign
 	local sign = Instance.new("Part")
+	sign.Name = "WelcomeSign"
 	sign.Size = Vector3.new(10, 5, 0.5)
-	sign.Position = hubCenter + Vector3.new(0, 4.5, -10)  -- On top of platform
+	sign.Position = hubCenter + Vector3.new(0, 4.5, -10) -- On top of platform
 	sign.Anchored = true
 	sign.BrickColor = BrickColor.new("White")
 	sign.Parent = Workspace
 
-	local signText = Instance.new("SurfaceGui")
-	signText.Face = Enum.NormalId.Front
-	signText.Parent = sign
+	local signGui = Instance.new("SurfaceGui")
+	signGui.Face = Enum.NormalId.Front
+	signGui.Parent = sign
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
@@ -663,19 +523,11 @@ function WorldBuilder:CreateHub()
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBold
 	label.TextColor3 = Color3.fromRGB(100, 150, 255)
-	label.Parent = signText
+	label.Parent = signGui
 
-	-- Spawn location ON TOP of platform
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "HubSpawn"
+	-- Spawn location ON TOP of platform (platform top is Y=12, spawn center at Y=12.5)
+	local spawn = self:CreateSpawn("HubSpawn", hubCenter + Vector3.new(0, 2.5, 0), BrickColor.new("Bright green"))
 	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.Position = hubCenter + Vector3.new(0, 2.5, 0)  -- On top of platform (platform top is Y=12, spawn center at Y=12.5)
-	spawn.Anchored = true
-	spawn.Transparency = 0.5
-	spawn.BrickColor = BrickColor.new("Bright green")
-	spawn.CanCollide = true  -- IMPORTANT: Must be true so players don't fall through
-	spawn.Duration = 0 -- Remove ForceField
-	spawn.Parent = Workspace
 
 	print("Hub created")
 end
@@ -685,6 +537,8 @@ function WorldBuilder:BuildWorld()
 	print("======================")
 	print("Building Elland World")
 	print("======================")
+
+	Workspace:SetAttribute("WorldBuilt", false)
 
 	-- Clean up old world if it exists
 	local oldSpawns = {
@@ -701,7 +555,7 @@ function WorldBuilder:BuildWorld()
 
 	local oldModels = {
 		"WishingTree", "EllasHouse", "WordleLibrary", "FashionBoutique",
-		"BuildingPlatform", "HubPlatform"
+		"BuildingPlatform", "HubPlatform", "Bench", "WelcomeSign"
 	}
 
 	for _, modelName in ipairs(oldModels) do
@@ -716,15 +570,21 @@ function WorldBuilder:BuildWorld()
 
 	print("Cleaned up old world")
 
-	-- Build new world
+	-- Build new world. Order matters:
+	-- 1. Base terrain, 2. Hill, 3. River LAST of the terrain passes so the
+	--    channel carving removes any grass (e.g. from the hill) that would
+	--    otherwise poke into the water, then structures on top.
 	self:CreateTerrain()
+	self:CreateEllasLookout()
 	self:CreateRiver()
 	self:CreateHub()
-	self:CreateEllasLookout()
 	self:CreateEllasHouse()
 	self:CreateWordleLibrary()
 	self:CreateFashionBoutique()
 	self:CreateBuildingArea()
+
+	-- Signal that the world is ready (InteractionManager waits on this)
+	Workspace:SetAttribute("WorldBuilt", true)
 
 	print("======================")
 	print("Elland World Complete!")
