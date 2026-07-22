@@ -32,7 +32,15 @@ function PolishBuilder:ApplyLighting()
 	Lighting.OutdoorAmbient = settings.OUTDOOR_AMBIENT
 	Lighting.Brightness = 2
 	Lighting.GlobalShadows = true
-	Lighting.Technology = Enum.Technology.ShadowMap
+	-- Lighting.Technology is RobloxScriptSecurity: game scripts cannot write
+	-- it. Set it once in Studio (Lighting > Technology = ShadowMap); it is
+	-- stored in the place and survives publishing.
+	local ok, err = pcall(function()
+		Lighting.Technology = Enum.Technology.ShadowMap
+	end)
+	if not ok then
+		warn("PolishBuilder: could not set Lighting.Technology (" .. tostring(err) .. ") - set it in Studio instead")
+	end
 
 	-- Replace any previous atmosphere/post effects (idempotent rebuilds)
 	for _, child in ipairs(Lighting:GetChildren()) do
