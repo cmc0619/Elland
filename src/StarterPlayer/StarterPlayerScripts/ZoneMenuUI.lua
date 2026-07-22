@@ -122,6 +122,37 @@ function ZoneMenuUI:CreateUI()
 	screenGui.Parent = playerGui
 	self.ScreenGui = screenGui
 
+	-- Always-visible Map button. The menu ScreenGui is disabled while the
+	-- menu is closed, so the button needs its own ScreenGui to stay visible.
+	local buttonGui = Instance.new("ScreenGui")
+	buttonGui.Name = "ZoneMenuButton"
+	buttonGui.ResetOnSpawn = false
+	buttonGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+	local mapButton = Instance.new("TextButton")
+	mapButton.Name = "MapButton"
+	mapButton.Size = UDim2.new(0, 110, 0, 36)
+	mapButton.Position = UDim2.new(0, 20, 0, 88) -- Just below the zone indicator HUD
+	mapButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	mapButton.BackgroundTransparency = 0.3
+	mapButton.BorderSizePixel = 0
+	mapButton.Text = "Map"
+	mapButton.TextSize = 16
+	mapButton.Font = Enum.Font.GothamBold
+	mapButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	mapButton.Parent = buttonGui
+
+	local mapCorner = Instance.new("UICorner")
+	mapCorner.CornerRadius = UDim.new(0, 10)
+	mapCorner.Parent = mapButton
+
+	-- Activated fires for touch, mouse click, and gamepad select alike
+	mapButton.Activated:Connect(function()
+		self:Toggle()
+	end)
+
+	buttonGui.Parent = playerGui
+
 	print("Zone Menu UI created")
 end
 

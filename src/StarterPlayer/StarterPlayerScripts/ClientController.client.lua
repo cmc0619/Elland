@@ -7,6 +7,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Get player references
 local player = Players.LocalPlayer
@@ -230,7 +231,7 @@ function ClientController:CreateHUD()
 	zoneHint.Size = UDim2.new(1, -20, 0, 20)
 	zoneHint.Position = UDim2.new(0, 10, 0, 35)
 	zoneHint.BackgroundTransparency = 1
-	zoneHint.Text = "Press M to open map"
+	zoneHint.Text = UserInputService.KeyboardEnabled and "Press M to open map" or "Tap Map to explore"
 	zoneHint.TextColor3 = Color3.fromRGB(255, 255, 255)
 	zoneHint.TextSize = 12
 	zoneHint.TextXAlignment = Enum.TextXAlignment.Left
