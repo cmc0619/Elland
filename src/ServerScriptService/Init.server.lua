@@ -21,6 +21,9 @@ local NatureBuilder = require(ServerScriptService.NatureBuilder)
 local BuildingSandbox = require(ServerScriptService.BuildingSandbox)
 local ObbyManager = require(ServerScriptService.ObbyManager)
 local SoccerManager = require(ServerScriptService.SoccerManager)
+local StageManager = require(ServerScriptService.StageManager)
+local NutcrackerBuilder = require(ServerScriptService.NutcrackerBuilder)
+local FamilyBuilder = require(ServerScriptService.FamilyBuilder)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
@@ -41,17 +44,24 @@ PolishBuilder:Build()
 print("Scattering nature...")
 NatureBuilder:Build()
 
--- Building sandbox needs the build platform from WorldBuilder
+-- Attractions and activities (all need the base terrain/structures)
 print("Initializing BuildingSandbox...")
 BuildingSandbox:Init()
 
--- Ella's Obby (leaderstats + checkpoint respawns, pays via CurrencyManager)
 print("Initializing ObbyManager...")
 ObbyManager:Init(CurrencyManager)
 
--- Soccer pitch (kickable ball, goals, scoreboard, coin rewards)
 print("Initializing SoccerManager...")
 SoccerManager:Init(CurrencyManager)
+
+print("Initializing StageManager...")
+StageManager:Init(CurrencyManager)
+
+print("Building Nutcracker Plaza...")
+NutcrackerBuilder:Build()
+
+print("Building family touches...")
+FamilyBuilder:Build()
 
 -- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")

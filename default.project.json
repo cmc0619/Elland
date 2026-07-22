@@ -41,6 +41,15 @@
       "SoccerManager": {
         "$path": "src/ServerScriptService/SoccerManager.lua"
       },
+      "StageManager": {
+        "$path": "src/ServerScriptService/StageManager.lua"
+      },
+      "NutcrackerBuilder": {
+        "$path": "src/ServerScriptService/NutcrackerBuilder.lua"
+      },
+      "FamilyBuilder": {
+        "$path": "src/ServerScriptService/FamilyBuilder.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }

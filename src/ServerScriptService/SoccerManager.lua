@@ -46,7 +46,7 @@ local function resetBall()
 	end
 	ball.AssemblyLinearVelocity = Vector3.zero
 	ball.AssemblyAngularVelocity = Vector3.zero
-	ball.Position = SOCCER.CENTER + Vector3.new(0, GROUND_LEVEL - SOCCER.CENTER.Y + SOCCER.BALL_SIZE, 0)
+	ball.Position = Vector3.new(SOCCER.CENTER.X, GROUND_LEVEL + SOCCER.BALL_SIZE, SOCCER.CENTER.Z)
 	lastKicker = nil
 end
 
@@ -94,7 +94,7 @@ local function buildGoal(parent, side)
 		white
 	)
 
-	-- Backstop and roof so the ball stays in the goal
+	-- Backstop, sides, and roof so the ball stays in the goal
 	local net = BrickColor.new("Institutional white")
 	createPart(
 		parent,
@@ -294,8 +294,8 @@ function SoccerManager:BuildPitch()
 		local now = os.clock()
 		if kickDebounce[player.UserId] and now - kickDebounce[player.UserId] < SOCCER.KICK_DEBOUNCE then
 			return
-			kickDebounce[player.UserId] = now
 		end
+		kickDebounce[player.UserId] = now
 
 		local look = rootPart.CFrame.LookVector
 		local flat = Vector3.new(look.X, 0, look.Z)
