@@ -60,19 +60,39 @@ In Rojo, when a directory contains an `init.lua` file, Rojo automatically infers
 - `WorldBuilder:BuildWorld()` builds terrain/river/hill/structures/spawns and sets `Workspace:GetAttribute("WorldBuilt")`
 - Right after, `Init.server.lua` runs the additional builders in order (all destroy any previous copy of their output folder first, so they stay idempotent):
   1. `PolishBuilder` - Lighting (Atmosphere/ColorCorrection/Bloom/SunRays, ClockTime 17.2, ShadowMap), Clouds, Hub-to-zone cobble paths (they bridge the river), lampposts, Hub fountain
-  2. `NatureBuilder` - Seeded (`NATURE.TREE_SEED`) tree/flower scatter with keep-outs (river, paths, hill+swing, zone structures, all attraction areas including Pet Corner and the Bake Shop)
-  3. `BuildingSandbox`, `ObbyManager`, `SoccerManager`, `StageManager`, `NutcrackerBuilder`, `FamilyBuilder`, `PetManager`, `BakeryManager`, `HuntManager` - the attractions
+  2. `NatureBuilder` - Seeded (`NATURE.TREE_SEED`) tree/flower scatter with keep-outs (river, paths, hill+swing, zone structures, all attraction areas including Pet Corner, the Bake Shop, and the Algebra Academy)
+  3. `BuildingSandbox`, `ObbyManager`, `SoccerManager`, `StageManager`, `TalentShowManager`, `NutcrackerBuilder`, `FamilyBuilder`, `PetManager`, `BakeryManager`, `HuntManager`, `AlgebraManager` - the attractions
+  4. `SeasonManager` - seasonal overlay LAST among builders (it decorates what the others built: lampposts, canopies, plaza snow)
 - `WorldUtils` provides `DistanceToRiver` (recomputes the meander from `Constants.WORLD`), `DistanceToSegment2D`, and `DistanceToNearestPath` - reuse these for any new scatter/placement logic
 - Terrain:FillCylinder's axis runs along the CFrame's **Z axis** - rotate 90 degrees to make horizontal layers. For cylinder PARTS, the axis runs along the part's **X axis** - rotate about Z (`CFrame.Angles(0, 0, math.rad(90))`) to stand them up (fountain basin, candy canes, nutcracker hat, cupcake wrappers)
 
 ### Positions and Constants
-- All attraction positions/sizes/rewards/cooldowns live in `Constants` (`LIGHTING`, `NATURE`, `PATHS`, `HUB`, `BUILDING_SANDBOX`, `OBBY`, `SOCCER`, `STAGE`, `NUTCRACKER`, `FAMILY`, `PETS`, `BAKERY`, `HUNT`) - never hardcode coordinates in builders. New sections should be purely additive tables like these (wave-2 features: talent show, seasonal, algebra - follow the same pattern)
+- All attraction positions/sizes/rewards/cooldowns live in `Constants` (`LIGHTING`, `NATURE`, `PATHS`, `HUB`, `BUILDING_SANDBOX`, `OBBY`, `SOCCER`, `STAGE`, `TALENT_SHOW`, `NUTCRACKER`, `SEASONS`, `ALGEBRA`, `FAMILY`, `PETS`, `BAKERY`, `HUNT`) - never hardcode coordinates in builders. New sections should be purely additive tables like these
 - New attractions were placed far from the river diagonal (RIVER_START (-300,-100) to RIVER_END (300,100) passes through the Hub with a ±30-stud meander). Always check `WorldUtils:DistanceToRiver` before placing anything new near the map center
-- When adding a structure anywhere the NatureBuilder scatter might reach, add a keep-out circle in `NatureBuilder`'s `buildKeepOuts()` (see the PETS/BAKERY entries)
+- When adding a structure anywhere the NatureBuilder scatter might reach, add a keep-out circle in `NatureBuilder`'s `buildKeepOuts()` (see the PETS/BAKERY/ALGEBRA entries)
 
 ### Economy and Rewards
-- ALL currency awards go through `CurrencyManager:AddCurrency` server-side with per-player cooldown tables keyed by `UserId` (obby winner 5 min, soccer goal 1 min, stage perform 2 min, sandbox rate limit 0.15 s, bake perfect bonus 2 min)
+- ALL currency awards go through `CurrencyManager:AddCurrency` server-side with per-player cooldown tables keyed by `UserId` (obby winner 5 min, soccer goal 1 min, stage perform 2 min, talent show 10 min server-wide, sandbox rate limit 0.15 s, bake perfect bonus 2 min, Linear Lab 5 min + 10-coin session cap, graph bonus 5 min)
 - Cooldown/state tables are cleaned up in `Players.PlayerRemoving`
+
+### Wave 2: Talent Show (TalentShowManager / TalentShowUI)
+- Extends Ella's Stage (requires StageManager to init first - it looks up `Workspace.EllasStage`)
+- Server-managed state machine: one `activeShow` table; `task.delay` opens the voting window (last 30s) and ends the show; a host leaving mid-show triggers `EndShow` via PlayerRemoving
+- Remotes: `TalentShowEvent` (server→all: phases start/voting/end) + `TalentShowVote` (client→server: "applause"/"star", rate-limited 1/sec per player server-side, performer blocked)
+- Payout: `min(floor(totalVotes / VOTES_PER_COIN), MAX_COINS)`; persists `TalentShowsHosted` / `BestApplause` (migration-safe DEFAULT_DATA fields)
+- TalentShowUI only opens for non-hosts during the voting phase; client debounce mirrors the server limit
+
+### Wave 2: Seasons (SeasonManager / Constants.SEASONS)
+- Data-driven: `SEASONS.ORDER` = priority list, `SEASONS.LIST[id]` = date window + decoration fields. Date windows are INCLUSIVE and wrap the new year when StartMonth > EndMonth (see `isInWindow`)
+- Runs at server start only (os.date), after Polish/Nature/Nutcracker so it can find lampposts (`Polish` folder: `LamppostPole`/`LamppostHead`), tree canopies (`Nature` folder: parts named `Canopy`), and the plaza snow (`NutcrackerPlaza.SnowEmitter`)
+- WINTER boosts the plaza's EXISTING emitter rate - never adds a duplicate. Adding Halloween/Spring = LIST entry + ORDER entry (+ one new apply-step only if a new decoration TYPE is needed)
+
+### Wave 2: Algebra Academy (AlgebraManager / AlgebraUI / GraphUI / EquationParser)
+- Linear Lab is LINEAR-ONLY **by construction**: the 4 generators build problems from slope-intercept pieces; there is no quadratic generator to accidentally pick. Keep it that way - the easel may graph quadratics, the practice problems may never include them
+- Session flow mirrors the bakery's two-step pattern: `AlgebraStartRequest` → `AlgebraSession` (payload = prompts + options ONLY; correctIndex stays server-side) → `AlgebraAnswer(choiceIndex)` → `AlgebraAnswerResult`. Never send the correct index to the client before it answers
+- `GraphBonusRequest(equationText)` pays +2 Coins only after the SERVER re-parses the string with the shared `EquationParser` module - never trust the client's "it was valid"
+- `Shared/EquationParser.lua` is required by BOTH server and client (`ReplicatedStorage.Shared.EquationParser`). Trick: `gsub("%-", "+-")` then split on `+` gives signed terms; each term is `coeff .. varPart` where varPart ∈ {"x^2", "x", ""}. Empty-term cases ("y=x+", "++") are explicitly rejected
+- GraphUI renders into the easel board's SurfaceGui (`Workspace.AlgebraAcademy.GraphBoard.GraphPaperGui.GraphArea`) LOCALLY - workspace edits from a client don't replicate, which gives every player their own view for free. Lines = one clipped rotated Frame; parabolas = 40 sampled segments; math.atan2 for segment rotation (screen Y points down)
 
 ### Pet Corner (PetManager / PetUI / PetFollow)
 - Catalog: `Constants.PETS.LIST` (Id/Name/Cost/Description/BodyColor/AccentColor); server builds its price catalog from it - client sends only the petId
@@ -95,7 +115,7 @@ In Rojo, when a directory contains an `init.lua` file, Rojo automatically infers
 - `ZoneManager` only teleports to the Hub on the FIRST `CharacterAdded` per player - later respawns belong to the Obby checkpoint system (it teleports the character to its highest checkpoint pad after death)
 
 ### Notifications
-- Server modules fire the shared `NotifyPlayer` RemoteEvent (created by `NutcrackerBuilder` if missing - newer modules use the same `FindFirstChild`-or-create pattern); `ClientController:ShowNotification(text)` renders a toast. Reuse this for any new one-liner world events
+- Server modules fire the shared `NotifyPlayer` RemoteEvent (created by `NutcrackerBuilder` if missing - newer modules use the same `FindFirstChild`-or-create pattern); `ClientController:ShowNotification(text)` renders a toast. Reuse this for any new one-liner world events (TalentShowManager and AlgebraManager already do)
 
 ### Building Sandbox
 - Blocks are session-only (`Workspace/PlayerBuilds/<UserId>`), cap 200/player, 2-stud grid snap, owner-only delete. Persistence via `Constants.BUILDING`/DataStore is future work
@@ -108,16 +128,17 @@ In Rojo, when a directory contains an `init.lua` file, Rojo automatically infers
 2. CurrencyManager - Depends on PlayerDataService
 3. WorldBuilder:BuildWorld() - Terrain/structures/spawns BEFORE anything that needs them
 4. PolishBuilder, NatureBuilder - Visual pass on top of the base world
-5. BuildingSandbox, ObbyManager, SoccerManager, StageManager - Attractions (currency-aware ones receive CurrencyManager)
+5. BuildingSandbox, ObbyManager, SoccerManager, StageManager, TalentShowManager - Attractions (currency/data-aware ones receive the managers; TalentShow needs the stage built)
 6. NutcrackerBuilder, FamilyBuilder - Decorative corners
-7. PetManager, BakeryManager, HuntManager - Persistent-data attractions (receive PlayerDataService + CurrencyManager)
-8. ZoneManager - Needs the spawn locations WorldBuilder created
-9. WordleManager - Depends on PlayerDataService and CurrencyManager
-10. InteractionManager - Waits on the `WorldBuilt` attribute, then creates ProximityPrompts
+7. PetManager, BakeryManager, HuntManager, AlgebraManager - Persistent-data attractions (receive PlayerDataService + CurrencyManager)
+8. SeasonManager - Decorates what steps 3-7 built (lampposts, canopies, plaza snow)
+9. ZoneManager - Needs the spawn locations WorldBuilder created
+10. WordleManager - Depends on PlayerDataService and CurrencyManager
+11. InteractionManager - Waits on the `WorldBuilt` attribute, then creates ProximityPrompts
 
 ### Client-Server Communication
-- RemoteEvents are created in server-side managers (at module load where clients `WaitForChild` them, e.g. `BuildPlaceRequest`, `NotifyPlayer`, `PetPurchaseRequest`, `HuntNoteUpdate`)
-- Client fires, server validates (placement, purchases, adoptions, bakes); server fires, client renders (currency, notifications, UI opens, note hiding)
+- RemoteEvents are created in server-side managers (at module load where clients `WaitForChild` them, e.g. `BuildPlaceRequest`, `NotifyPlayer`, `PetPurchaseRequest`, `HuntNoteUpdate`, `TalentShowEvent`, `AlgebraSession`, `GraphBonusRequest`)
+- Client fires, server validates (placement, purchases, adoptions, bakes, votes, answers, graph bonuses); server fires, client renders (currency, notifications, UI opens, note hiding, voting panels)
 - New UI modules follow the FashionUI pattern: ModuleScript in StarterPlayerScripts with `CreateUI/Open/Close/Init`, required and initialized by `ClientController` inside a pcall; the module waits on its own remotes in `Init`. Standalone client behaviors (PetFollow, HuntClient) are `.client.lua` LocalScripts that don't need ClientController wiring
 
 ## Git Configuration
@@ -138,6 +159,9 @@ Commits go directly to `main`. **CRITICAL:** Always push commits to remote immed
 - [ ] Obby: checkpoints, checkpoint respawn after death, winner cooldown
 - [ ] Soccer: kick direction, goal scoring, ball reset watchdog
 - [ ] Stage: Perform! cooldown + billboard; Nutcracker tree toast
+- [ ] Talent Show: host → all-player toast, voting panel for others in last 30s, rate limit, payout + confetti + results, 10-min cooldown, host-leave ends show
+- [ ] Algebra: 5 linear-only questions, server-side scoring, +2/correct (cap 10), 5-min cooldown, stats persist; easel graphs `y=2x+1` / `y=x^2-4` / `x=-2`, friendly error on garbage, +2 first-graph bonus
+- [ ] Winter window (or temp test window): map snow, fairy lights, canopy tint, boosted plaza snow
 - [ ] Swing still swings; no trees/grass in the river
 
 ## Terrain and Positioning Lessons Learned
@@ -168,16 +192,22 @@ ZoneManager must stay "Hub on first spawn only" - if it teleports on every Chara
 ### Pet doesn't follow / appears frozen
 The server only positions the pet once - movement is `PetFollow.client.lua` pivoting models in `Workspace/Pets` each Heartbeat. If pets freeze, check that the model has the `OwnerUserId` attribute and that PetFollow found the `Pets` folder (it waits 30s).
 
+### Talent Show voting panel never appears
+The panel opens only for NON-host players when the server broadcasts `phase = "voting"` - in solo Studio testing you are the host, so the panel correctly stays hidden. Test with 2+ players (Studio: Test → Start 2 Players).
+
+### Graph doesn't draw on the easel
+GraphUI looks up `Workspace.AlgebraAcademy.GraphBoard.GraphPaperGui.GraphArea` at render time. Check AlgebraManager initialized (the folder exists) and that the parse succeeded (error label shows the friendly message otherwise).
+
 ## Future Improvements
 - [ ] Fashion Boutique: apply purchased items visually to the character
 - [ ] Pet accessories / tricks
 - [ ] Persist Building Area builds via DataStore
 - [ ] Owner-provided stage songs (`Constants.STAGE.CHOIR_SONGS`)
 - [ ] Add zone icons to Constants.ZONES
-- [ ] Wave 2 features: talent show, seasonal events, algebra corner (add NEW additive Constants sections - don't restructure existing ones)
+- [ ] More seasons: Halloween/Spring entries in `Constants.SEASONS` (data-only)
 - [ ] Implement mock DataStore for offline testing
 - [ ] Add admin commands for testing currency/zones
-- [ ] Add automated tests for core systems
+- [ ] Add automated tests for core systems (EquationParser is pure and the easiest first target)
 
 ## Roblox Development Best Practices
 
@@ -194,5 +224,5 @@ The server only positions the pet once - movement is `PetFollow.client.lua` pivo
 
 ---
 
-**Last Updated:** 2025-11-30
-**Project Version:** 0.3.0
+**Last Updated:** 2025-12-01
+**Project Version:** 0.4.0
