@@ -23,6 +23,15 @@
       "WorldBuilder": {
         "$path": "src/ServerScriptService/WorldBuilder.lua"
       },
+      "WorldUtils": {
+        "$path": "src/ServerScriptService/WorldUtils.lua"
+      },
+      "PolishBuilder": {
+        "$path": "src/ServerScriptService/PolishBuilder.lua"
+      },
+      "NatureBuilder": {
+        "$path": "src/ServerScriptService/NatureBuilder.lua"
+      },
       "InteractionManager": {
         "$path": "src/ServerScriptService/InteractionManager.lua"
       }

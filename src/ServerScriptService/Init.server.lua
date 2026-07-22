@@ -16,6 +16,8 @@ local CurrencyManager = require(ServerScriptService.CurrencyManager)
 local ZoneManager = require(ServerScriptService.ZoneManager)
 local WordleManager = require(ServerScriptService.WordleManager)
 local WorldBuilder = require(ServerScriptService.WorldBuilder)
+local PolishBuilder = require(ServerScriptService.PolishBuilder)
+local NatureBuilder = require(ServerScriptService.NatureBuilder)
 local InteractionManager = require(ServerScriptService.InteractionManager)
 
 -- Initialize services in order
@@ -28,6 +30,13 @@ CurrencyManager:Init(PlayerDataService)
 -- Build the world FIRST (creates spawn locations)
 print("Building World...")
 WorldBuilder:BuildWorld()
+
+-- Visual polish + nature scatter right after the base world
+print("Applying lighting and polish...")
+PolishBuilder:Build()
+
+print("Scattering nature...")
+NatureBuilder:Build()
 
 -- Initialize ZoneManager AFTER world is built (needs spawn locations)
 print("Initializing ZoneManager...")
