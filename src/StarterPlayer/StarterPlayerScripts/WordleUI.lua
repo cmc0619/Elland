@@ -48,24 +48,56 @@ function WordleUI:CreateUI()
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Enabled = false
 
-	-- Background blur/dimmer
-	local dimmer = Instance.new("Frame")
+	-- Background dimmer. It is a TextButton so tapping anywhere outside the
+	-- panel closes the UI - important on phones where the close button can
+	-- be hard to reach.
+	local dimmer = Instance.new("TextButton")
 	dimmer.Name = "Dimmer"
 	dimmer.Size = UDim2.new(1, 0, 1, 0)
 	dimmer.BackgroundColor3 = COLORS.OVERLAY
 	dimmer.BackgroundTransparency = 1 -- Start transparent for fade in
 	dimmer.BorderSizePixel = 0
+	dimmer.Text = ""
+	dimmer.AutoButtonColor = false
 	dimmer.Parent = screenGui
 
-	-- Main container
+	dimmer.Activated:Connect(function()
+		self:Close()
+	end)
+
+	-- Main container. Wide (landscape) layout: guess grid on the left,
+	-- keyboard on the right. The UIScale below shrinks the whole panel
+	-- uniformly on small screens, so this fixed-pixel layout stays simple.
 	local container = Instance.new("Frame")
 	container.Name = "Container"
-	container.Size = UDim2.new(0, 400, 0, 580) -- Compact, mobile-friendly size
+	container.Size = UDim2.new(0, 660, 0, 400)
 	container.Position = UDim2.new(0.5, 0, 0.55, 0) -- Start slightly lower for slide up
 	container.AnchorPoint = Vector2.new(0.5, 0.5)
 	container.BackgroundColor3 = COLORS.BACKGROUND
 	container.BorderSizePixel = 0
+	-- Sink taps on the panel so they don't fall through to the dimmer,
+	-- whose Activated handler closes the UI.
+	container.Active = true
 	container.Parent = screenGui
+
+	-- Fit the 660x400 panel to the viewport (phones in landscape can be
+	-- under 400 px tall), with a small margin for notches/rounded corners.
+	local uiScale = Instance.new("UIScale")
+	uiScale.Parent = container
+
+	local function fitToViewport()
+		local camera = workspace.CurrentCamera
+		if camera then
+			local vp = camera.ViewportSize
+			uiScale.Scale = math.min(1, (vp.X - 24) / 660, (vp.Y - 24) / 400)
+		end
+	end
+
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(fitToViewport)
+	end
+	fitToViewport()
 
 	-- Styling: Shadow
 	local shadow = Instance.new("UIStroke")
@@ -104,10 +136,10 @@ function WordleUI:CreateUI()
 	title.TextColor3 = COLORS.TEXT
 	title.Parent = header
 
-	-- Close button
+	-- Close button (big enough for thumbs)
 	local closeButton = Instance.new("TextButton")
 	closeButton.Name = "CloseButton"
-	closeButton.Size = UDim2.new(0, 40, 0, 40)
+	closeButton.Size = UDim2.new(0, 44, 0, 44)
 	closeButton.Position = UDim2.new(1, -45, 0.5, 0)
 	closeButton.AnchorPoint = Vector2.new(0, 0.5)
 	closeButton.BackgroundTransparency = 1
@@ -124,8 +156,8 @@ function WordleUI:CreateUI()
 	-- Stats/Message display
 	local messageLabel = Instance.new("TextLabel")
 	messageLabel.Name = "Message"
-	messageLabel.Size = UDim2.new(1, -40, 0, 30)
-	messageLabel.Position = UDim2.new(0.5, 0, 0, 60)
+	messageLabel.Size = UDim2.new(1, -40, 0, 26)
+	messageLabel.Position = UDim2.new(0.5, 0, 0, 52)
 	messageLabel.AnchorPoint = Vector2.new(0.5, 0)
 	messageLabel.BackgroundTransparency = 1
 	messageLabel.Text = "Welcome!"
@@ -134,17 +166,17 @@ function WordleUI:CreateUI()
 	messageLabel.TextColor3 = COLORS.TEXT
 	messageLabel.Parent = container
 
-	-- Grid for guesses
+	-- Grid for guesses (left side of the wide layout).
+	-- 5 cols * 48 + 4 * 5 gap = 260 wide; 6 rows * 48 + 5 * 5 gap = 313 tall.
 	local gridFrame = Instance.new("Frame")
 	gridFrame.Name = "GridFrame"
-	gridFrame.Size = UDim2.new(0, 280, 0, 330) -- 5 cols * (50 size + 5 gap)
-	gridFrame.Position = UDim2.new(0.5, 0, 0, 100)
-	gridFrame.AnchorPoint = Vector2.new(0.5, 0)
+	gridFrame.Size = UDim2.new(0, 260, 0, 313)
+	gridFrame.Position = UDim2.new(0, 20, 0, 80)
 	gridFrame.BackgroundTransparency = 1
 	gridFrame.Parent = container
 
 	local gridLayout = Instance.new("UIGridLayout")
-	gridLayout.CellSize = UDim2.new(0, 50, 0, 50)
+	gridLayout.CellSize = UDim2.new(0, 48, 0, 48)
 	gridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
 	gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -180,12 +212,11 @@ function WordleUI:CreateUI()
 		end
 	end
 
-	-- Keyboard
+	-- Keyboard (right side of the wide layout, big thumb-friendly keys)
 	local keyboardFrame = Instance.new("Frame")
 	keyboardFrame.Name = "KeyboardFrame"
-	keyboardFrame.Size = UDim2.new(1, -20, 0, 120)
-	keyboardFrame.Position = UDim2.new(0.5, 0, 1, -10)
-	keyboardFrame.AnchorPoint = Vector2.new(0.5, 1)
+	keyboardFrame.Size = UDim2.new(0, 350, 0, 176)
+	keyboardFrame.Position = UDim2.new(0, 296, 0, 148)
 	keyboardFrame.BackgroundTransparency = 1
 	keyboardFrame.Parent = container
 
@@ -195,7 +226,7 @@ function WordleUI:CreateUI()
 		{"ENTER", "Z", "X", "C", "V", "B", "N", "M", "<"}
 	}
 
-	local rowHeight = 36
+	local rowHeight = 56
 	local keyGap = 4
 
 	for rowIndex, keys in ipairs(keyboardLayout) do
@@ -215,13 +246,13 @@ function WordleUI:CreateUI()
 			local keyButton = Instance.new("TextButton")
 			keyButton.Name = "Key_" .. key
 
-			local width = 28
-			if key == "ENTER" or key == "<" then width = 45 end
+			local width = 30
+			if key == "ENTER" or key == "<" then width = 50 end
 
 			keyButton.Size = UDim2.new(0, width, 1, 0)
 			keyButton.BackgroundColor3 = COLORS.KEY_BG
 			keyButton.Text = key
-			keyButton.TextSize = 12
+			keyButton.TextSize = 16
 			keyButton.Font = Enum.Font.GothamBold
 			keyButton.TextColor3 = COLORS.TEXT
 			keyButton.AutoButtonColor = false -- handled manually for style
