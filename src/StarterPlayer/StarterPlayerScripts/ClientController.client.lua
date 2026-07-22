@@ -127,6 +127,41 @@ function ClientController:ShowCurrencyLoss(amount)
 	notification:Destroy()
 end
 
+-- Generic toast notification (used by world events via NotifyPlayer,
+-- e.g. the Nutcracker Plaza tree's "Break a leg, Ella!")
+function ClientController:ShowNotification(text)
+	if not self.MainHUD then return end
+
+	local notification = Instance.new("TextLabel")
+	notification.Size = UDim2.new(0, 320, 0, 44)
+	notification.Position = UDim2.new(0.5, 0, 0, 20)
+	notification.AnchorPoint = Vector2.new(0.5, 0)
+	notification.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+	notification.Text = text
+	notification.TextSize = 18
+	notification.Font = Enum.Font.GothamBold
+	notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+	notification.Parent = self.MainHUD
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = notification
+
+	TweenService:Create(notification, TweenInfo.new(0.3), {
+		Position = UDim2.new(0.5, 0, 0, 30)
+	}):Play()
+
+	task.wait(Constants.UI.NOTIFICATION_DURATION)
+
+	TweenService:Create(notification, TweenInfo.new(0.3), {
+		BackgroundTransparency = 1,
+		TextTransparency = 1
+	}):Play()
+
+	task.wait(0.3)
+	notification:Destroy()
+end
+
 -- Create HUD
 function ClientController:CreateHUD()
 	local screenGui = Instance.new("ScreenGui")
@@ -364,6 +399,16 @@ function ClientController:Init()
 			if FashionUI and FashionUI.Open then
 				FashionUI:Open(ownedItems, currency)
 			end
+		end)
+	end
+
+	-- Listen for world-event notifications (e.g. Nutcracker Plaza tree)
+	local notifyEvent = ReplicatedStorage:WaitForChild("NotifyPlayer", 10)
+	if notifyEvent then
+		notifyEvent.OnClientEvent:Connect(function(text)
+			task.spawn(function()
+				self:ShowNotification(text)
+			end)
 		end)
 	end
 
