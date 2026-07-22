@@ -65,14 +65,13 @@ function WordleUI:CreateUI()
 	container.AnchorPoint = Vector2.new(0.5, 0.5)
 	container.BackgroundColor3 = COLORS.BACKGROUND
 	container.BorderSizePixel = 0
-	container.BackgroundTransparency = 0 -- Opaque
 	container.Parent = screenGui
 
 	-- Styling: Shadow
 	local shadow = Instance.new("UIStroke")
 	shadow.Thickness = 6
 	shadow.Transparency = 0.8
-	shadow.Color = Color3.new(0,0,0)
+	shadow.Color = Color3.new(0, 0, 0)
 	shadow.Parent = container
 
 	-- Styling: Rounded Corners
@@ -101,7 +100,7 @@ function WordleUI:CreateUI()
 	title.BackgroundTransparency = 1
 	title.Text = "Wordle"
 	title.TextSize = 24
-	title.Font = Enum.Font.GothamBold -- Clean font
+	title.Font = Enum.Font.GothamBold
 	title.TextColor3 = COLORS.TEXT
 	title.Parent = header
 
@@ -112,7 +111,7 @@ function WordleUI:CreateUI()
 	closeButton.Position = UDim2.new(1, -45, 0.5, 0)
 	closeButton.AnchorPoint = Vector2.new(0, 0.5)
 	closeButton.BackgroundTransparency = 1
-	closeButton.Text = "✕"
+	closeButton.Text = "X"
 	closeButton.TextSize = 20
 	closeButton.Font = Enum.Font.Gotham
 	closeButton.TextColor3 = COLORS.ABSENT
@@ -176,7 +175,7 @@ function WordleUI:CreateUI()
 			letter.Font = Enum.Font.GothamBold
 			letter.TextColor3 = COLORS.TEXT
 			letter.Parent = box
-			
+
 			self.GuessBoxes[row][col] = box
 		end
 	end
@@ -193,23 +192,19 @@ function WordleUI:CreateUI()
 	local keyboardLayout = {
 		{"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"},
 		{"A", "S", "D", "F", "G", "H", "J", "K", "L"},
-		{"ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"}
+		{"ENTER", "Z", "X", "C", "V", "B", "N", "M", "<"}
 	}
 
 	local rowHeight = 36
 	local keyGap = 4
-	
+
 	for rowIndex, keys in ipairs(keyboardLayout) do
 		local rowFrame = Instance.new("Frame")
 		rowFrame.Size = UDim2.new(1, 0, 0, rowHeight)
 		rowFrame.Position = UDim2.new(0, 0, 0, (rowIndex - 1) * (rowHeight + keyGap))
 		rowFrame.BackgroundTransparency = 1
 		rowFrame.Parent = keyboardFrame
-		
-		-- Simple manual layout for centered rows
-		local totalGap = ( #keys - 1 ) * keyGap
-		-- This is "approximate" dynamic sizing logic
-		-- Actually simpler to just use UIListLayout
+
 		local list = Instance.new("UIListLayout")
 		list.FillDirection = Enum.FillDirection.Horizontal
 		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -219,17 +214,17 @@ function WordleUI:CreateUI()
 		for _, key in ipairs(keys) do
 			local keyButton = Instance.new("TextButton")
 			keyButton.Name = "Key_" .. key
-			
+
 			local width = 28
-			if key == "ENTER" or key == "⌫" then width = 45 end
-			
+			if key == "ENTER" or key == "<" then width = 45 end
+
 			keyButton.Size = UDim2.new(0, width, 1, 0)
 			keyButton.BackgroundColor3 = COLORS.KEY_BG
 			keyButton.Text = key
 			keyButton.TextSize = 12
 			keyButton.Font = Enum.Font.GothamBold
 			keyButton.TextColor3 = COLORS.TEXT
-			keyButton.AutoButtonColor = false -- handle interact manually for style
+			keyButton.AutoButtonColor = false -- handled manually for style
 			keyButton.Parent = rowFrame
 
 			local corner = Instance.new("UICorner")
@@ -237,7 +232,7 @@ function WordleUI:CreateUI()
 			corner.Parent = keyButton
 
 			self.KeyboardButtons[key] = keyButton
-			
+
 			-- Hover effect
 			keyButton.MouseEnter:Connect(function()
 				TweenService:Create(keyButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
@@ -258,14 +253,14 @@ function WordleUI:CreateUI()
 	self.Container = container
 	self.MessageLabel = messageLabel
 
-	print("Premium Wordle UI created")
+	print("Wordle UI created")
 end
 
 -- Handle key press
 function WordleUI:HandleKeyPress(key)
 	if key == "ENTER" then
 		self:SubmitGuess()
-	elseif key == "⌫" then
+	elseif key == "<" then
 		if #self.CurrentGuess > 0 then
 			self.CurrentGuess = self.CurrentGuess:sub(1, -2)
 			self:UpdateDisplay()
@@ -274,13 +269,16 @@ function WordleUI:HandleKeyPress(key)
 		-- Letter
 		if #self.CurrentGuess < Constants.WORDLE.WORD_LENGTH then
 			self.CurrentGuess = self.CurrentGuess .. key
-			
-			-- Pop animation for typing
+
+			-- Pop animation for typing. Tween the letter's TextSize, not the
+			-- box Size: the UIGridLayout owns cell sizes and would fight a
+			-- Size tween.
 			local box = self.GuessBoxes[self.CurrentRow][#self.CurrentGuess]
-			if box then
-				box.Size = UDim2.new(0, 56, 0, 56) -- slightly bigger
-				TweenService:Create(box, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
-					Size = UDim2.new(0, 50, 0, 50)
+			local letter = box and box:FindFirstChild("Letter")
+			if letter then
+				letter.TextSize = 34
+				TweenService:Create(letter, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					TextSize = 28
 				}):Play()
 			end
 
@@ -312,16 +310,16 @@ end
 function WordleUI:SubmitGuess()
 	if #self.CurrentGuess ~= Constants.WORDLE.WORD_LENGTH then
 		self:FlashMessage("Not enough letters")
-		-- Shake row animation
+		-- Flash the row borders to indicate the rejection (a positional
+		-- shake would fight the UIGridLayout)
 		local rowBoxes = self.GuessBoxes[self.CurrentRow]
 		for _, box in pairs(rowBoxes) do
-			local originalPos = box.Position
-			-- Simple shake tween logic would be complex with UIGridLayout
-			-- Instead just flash border red
 			local stroke = box:FindFirstChild("UIStroke")
 			local originalColor = stroke.Color
-			stroke.Color = COLORS.ABSENT -- grey/reddish
-			task.delay(0.2, function() stroke.Color = originalColor end)
+			stroke.Color = COLORS.ABSENT
+			task.delay(0.2, function()
+				stroke.Color = originalColor
+			end)
 		end
 		return
 	end
@@ -332,22 +330,23 @@ end
 -- Handle result from server
 function WordleUI:HandleResult(data)
 	if not data.success then
-		self:FlashMessage(data.error)
+		self:FlashMessage(data.error or "Something went wrong")
 		return
 	end
 
-	-- Reveal animation
+	-- Reveal animation. Flip via Rotation instead of Size so the tween
+	-- doesn't fight the UIGridLayout, which owns cell sizes.
 	for col, letterData in ipairs(data.result) do
 		local box = self.GuessBoxes[self.CurrentRow][col]
 		local letter = box:FindFirstChild("Letter")
 		local stroke = box:FindFirstChild("UIStroke")
-		
+
 		-- Cascading delay
 		task.wait(0.2)
 
-		-- Flip Animation part 1 (flatten)
-		local tween1 = TweenService:Create(box, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 50, 0, 0) -- Flatten Y
+		-- Flip part 1: rotate away
+		local tween1 = TweenService:Create(box, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Rotation = 90
 		})
 		tween1:Play()
 		tween1.Completed:Wait()
@@ -360,26 +359,25 @@ function WordleUI:HandleResult(data)
 			color = COLORS.PRESENT
 		end
 
-		-- Apply State
+		-- Apply state while flipped
 		box.BackgroundColor3 = color
 		stroke.Transparency = 1 -- Hide border on filled cells
 		letter.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text on colored bg
-		
-		-- Flip Animation part 2 (expand)
-		local tween2 = TweenService:Create(box, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 50, 0, 50)
+
+		-- Flip part 2: rotate back
+		local tween2 = TweenService:Create(box, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Rotation = 0
 		})
 		tween2:Play()
 
-		-- Update keyboard
+		-- Update keyboard (never downgrade a green key back to yellow/grey)
 		local keyButton = self.KeyboardButtons[letterData.letter]
 		if keyButton then
-			-- Logic to only upgrade color (e.g. don't turn green back to yellow)
 			local formatColor = color
 			if keyButton.BackgroundColor3 == COLORS.CORRECT then
 				formatColor = COLORS.CORRECT
 			end
-			
+
 			TweenService:Create(keyButton, TweenInfo.new(0.4), {
 				BackgroundColor3 = formatColor,
 				TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -389,20 +387,22 @@ function WordleUI:HandleResult(data)
 
 	if data.complete then
 		task.wait(1)
-		
-		local msg = ""
-		local color = COLORS.TEXT
-		
+
+		local msg
 		if data.won then
 			local flavor = {"Genius", "Magnificent", "Impressive", "Splendid", "Great", "Phew"}
-			msg = flavor[math.min(data.attempts, #flavor)] -- Pick based on performance
-			if data.reward then msg = msg .. "\n+" .. data.reward .. " Coins" end
+			msg = flavor[math.min(data.attempts, #flavor)]
+			if data.reward then
+				msg = msg .. "\n+" .. data.reward .. " " .. Constants.CURRENCY_NAME
+			end
 		else
-			msg = "The word was " .. (data.result[1].letter .. data.result[2].letter .. data.result[3].letter .. data.result[4].letter .. data.result[5].letter) -- rough reconstruction or pass from server
+			-- The server's message contains the actual answer
+			msg = data.message or "Out of attempts!"
 		end
-		
+
 		self.MessageLabel.Text = msg
-		
+		self.MessageLabel.TextTransparency = 0
+
 		task.wait(4)
 		self:Close()
 	else
@@ -415,7 +415,7 @@ end
 function WordleUI:FlashMessage(text)
 	self.MessageLabel.Text = text
 	self.MessageLabel.TextTransparency = 0
-	
+
 	-- Fade out after delay
 	task.delay(1.5, function()
 		TweenService:Create(self.MessageLabel, TweenInfo.new(1), {TextTransparency = 1}):Play()
@@ -426,20 +426,21 @@ end
 function WordleUI:Open()
 	if self.IsOpen then return end
 	self.IsOpen = true
-	
+
 	if not self.ScreenGui then self:CreateUI() end
 	self.ScreenGui.Enabled = true
 
 	self.CurrentGuess = ""
 	self.CurrentRow = 1
 	self.MessageLabel.Text = "Guess the Wordle"
-	self.MessageLabel.TextTransparency = 0 -- Be visible
+	self.MessageLabel.TextTransparency = 0
 
 	-- Reset visual state of grid
 	for row = 1, Constants.WORDLE.MAX_ATTEMPTS do
 		for col = 1, Constants.WORDLE.WORD_LENGTH do
 			local box = self.GuessBoxes[row][col]
 			if box then
+				box.Rotation = 0
 				box.BackgroundColor3 = COLORS.BACKGROUND
 				box:FindFirstChild("Letter").Text = ""
 				box:FindFirstChild("Letter").TextColor3 = COLORS.TEXT
@@ -448,7 +449,7 @@ function WordleUI:Open()
 			end
 		end
 	end
-	
+
 	-- Reset Keyboard
 	for _, button in pairs(self.KeyboardButtons) do
 		button.BackgroundColor3 = COLORS.KEY_BG
@@ -458,12 +459,12 @@ function WordleUI:Open()
 	-- Entrance Animation
 	self.Dimmer.BackgroundTransparency = 1
 	self.Container.Position = UDim2.new(0.5, 0, 0.55, 0) -- Start lower
-	
+
 	local tweenDim = TweenService:Create(self.Dimmer, TweenInfo.new(0.3), {BackgroundTransparency = 0.5})
 	local tweenCont = TweenService:Create(self.Container, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Position = UDim2.new(0.5, 0, 0.5, 0)
 	})
-	
+
 	tweenDim:Play()
 	tweenCont:Play()
 
@@ -474,16 +475,16 @@ end
 -- Close Wordle UI
 function WordleUI:Close()
 	self.IsOpen = false
-	
+
 	-- Exit Animation
 	local tweenDim = TweenService:Create(self.Dimmer, TweenInfo.new(0.3), {BackgroundTransparency = 1})
 	local tweenCont = TweenService:Create(self.Container, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		Position = UDim2.new(0.5, 0, 0.55, 0)
 	})
-	
+
 	tweenDim:Play()
 	tweenCont:Play()
-	
+
 	tweenCont.Completed:Wait()
 	self.ScreenGui.Enabled = false
 end
@@ -492,20 +493,20 @@ end
 function WordleUI:HandleNewGame(data)
 	if data.complete then
 		self.MessageLabel.Text = "Come back tomorrow"
+		self.MessageLabel.TextTransparency = 0
 		task.wait(2)
 		self:Close()
 	else
-		-- Restore previous attempts
-		-- This logic is similar to HandleResult but without animation delay
+		-- Restore previous attempts (no animation)
 		for i, guess in ipairs(data.guesses) do
 			self.CurrentRow = i + 1
 			for col, letterData in ipairs(guess.result) do
 				local box = self.GuessBoxes[i][col]
-				
+
 				local color = COLORS.ABSENT
 				if letterData.status == "correct" then color = COLORS.CORRECT
 				elseif letterData.status == "present" then color = COLORS.PRESENT end
-				
+
 				box.BackgroundColor3 = color
 				box:FindFirstChild("UIStroke").Transparency = 1
 				local letter = box:FindFirstChild("Letter")
@@ -531,18 +532,28 @@ function WordleUI:Init()
 	WordleGuess = ReplicatedStorage:WaitForChild("WordleGuess", 10)
 	WordleResult = ReplicatedStorage:WaitForChild("WordleResult", 10)
 	WordleNewGame = ReplicatedStorage:WaitForChild("WordleNewGame", 10)
-	
+
 	if not (WordleGuess and WordleResult and WordleNewGame) then
 		warn("WordleUI: Missing Remotes")
 		return
 	end
-	
+
 	self:CreateUI()
-	
-	WordleResult.OnClientEvent:Connect(function(data) self:HandleResult(data) end)
-	WordleNewGame.OnClientEvent:Connect(function(data) self:HandleNewGame(data) end)
-	
-	print("WordleUI Initialized (Premium)")
+
+	-- Wrap handlers in task.spawn so their animation delays don't block
+	-- the RemoteEvent dispatch thread.
+	WordleResult.OnClientEvent:Connect(function(data)
+		task.spawn(function()
+			self:HandleResult(data)
+		end)
+	end)
+	WordleNewGame.OnClientEvent:Connect(function(data)
+		task.spawn(function()
+			self:HandleNewGame(data)
+		end)
+	end)
+
+	print("WordleUI Initialized")
 end
 
 return WordleUI

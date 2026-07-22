@@ -56,7 +56,7 @@ function ZoneMenuUI:CreateUI()
 	title.Size = UDim2.new(1, -40, 0, 60)
 	title.Position = UDim2.new(0, 20, 0, 10)
 	title.BackgroundTransparency = 1
-	title.Text = "🗺️  EXPLORE ELLAND"
+	title.Text = "EXPLORE ELLAND"
 	title.TextSize = 28
 	title.Font = Enum.Font.GothamBold
 	title.TextColor3 = Color3.fromRGB(50, 50, 50)
@@ -80,7 +80,7 @@ function ZoneMenuUI:CreateUI()
 	closeButton.Size = UDim2.new(0, 50, 0, 50)
 	closeButton.Position = UDim2.new(1, -60, 0, 10)
 	closeButton.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-	closeButton.Text = "✕"
+	closeButton.Text = "X"
 	closeButton.TextSize = 24
 	closeButton.Font = Enum.Font.GothamBold
 	closeButton.TextColor3 = Color3.fromRGB(50, 50, 50)
@@ -109,7 +109,7 @@ function ZoneMenuUI:CreateUI()
 	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	listLayout.Parent = zonesFrame
 
-	-- Create zone buttons
+	-- Create zone buttons in a stable order
 	local zoneOrder = {"Hub", "EllasLookout", "EllasHouse", "WordleLibrary", "FashionBoutique", "BuildingArea"}
 
 	for order, zoneName in ipairs(zoneOrder) do
@@ -177,7 +177,7 @@ function ZoneMenuUI:CreateZoneButton(parent, zoneName, zoneData, order)
 	descLabel.TextStrokeTransparency = 0.7
 	descLabel.Parent = button
 
-	-- Hover effect
+	-- Hover effect (scale the whole button; UIGridLayout keeps the cell)
 	button.MouseEnter:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.2), {
 			Size = UDim2.new(0, 210, 0, 130)
@@ -198,12 +198,15 @@ end
 
 -- Teleport to zone
 function ZoneMenuUI:TeleportToZone(zoneName, displayName)
-	print("Teleporting to", displayName)
-	TeleportRequest:FireServer(zoneName)
+	if TeleportRequest then
+		TeleportRequest:FireServer(zoneName)
+	end
 	self:Close()
 
-	-- Show notification
-	self:ShowNotification("Traveling to " .. displayName .. "...")
+	-- Show notification without blocking the click handler
+	task.spawn(function()
+		self:ShowNotification("Traveling to " .. displayName .. "...")
+	end)
 end
 
 -- Show notification
@@ -272,11 +275,11 @@ end
 function ZoneMenuUI:Init()
 	-- Initialize remote event now (lazy loading to avoid blocking module load)
 	TeleportRequest = ReplicatedStorage:WaitForChild("TeleportRequest", 10)
-	
+
 	if not TeleportRequest then
 		warn("ZoneMenuUI: Could not find TeleportRequest remote event")
 	end
-	
+
 	self:CreateUI()
 
 	-- Listen for M key to open menu
