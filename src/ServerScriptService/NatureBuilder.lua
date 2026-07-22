@@ -5,7 +5,8 @@
 	Placement is deterministic (seeded Random) and respects keep-out zones:
 	the river channel, walking paths, the lookout hill/swing, every zone
 	structure, and the new attractions (obby, soccer pitch, stage, plaza,
-	picnic, photo spot). Nothing is placed in the riverbed.
+	picnic, photo spot, pet corner, bake shop). Nothing is placed in the
+	riverbed.
 
 	Runs once at server start, after WorldBuilder:BuildWorld().
 ]]
@@ -43,6 +44,8 @@ local function buildKeepOuts()
 	table.insert(keepOuts, { center = Constants.NUTCRACKER.CENTER, radius = 30 })
 	table.insert(keepOuts, { center = Constants.FAMILY.PICNIC_CENTER, radius = 15 })
 	table.insert(keepOuts, { center = Constants.FAMILY.PHOTO_SPOT, radius = 15 })
+	table.insert(keepOuts, { center = Constants.PETS.POSITION, radius = 20 }) -- Pet Corner pen
+	table.insert(keepOuts, { center = Constants.BAKERY.POSITION, radius = 25 }) -- Ella's Bake Shop
 
 	return keepOuts
 end
